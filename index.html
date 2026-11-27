@@ -147,7 +147,11 @@ td.u{color:var(--volt)} td.i{color:var(--amp)}
 .steps{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
 .steps summary{cursor:pointer;font-weight:600}
 .steps ol{margin:10px 0 0;padding-left:22px;display:grid;gap:8px}
-.steps li{font-family:var(--f-mono);font-size:14px;overflow-wrap:anywhere}
+.steps li{font-size:15px;min-width:0}
+.steps li .f{overflow-x:auto;overflow-y:hidden;padding-block:3px}
+.steps math,.formula math{font-family:"Cambria Math","STIX Two Math","Latin Modern Math","Times New Roman",math;font-size:1.18em}
+.steps .mres{color:var(--accent);font-weight:700}
+code.tex{font-family:var(--f-mono);font-size:13px}
 .steps li .note{display:block;font-family:var(--f-body);color:var(--muted);font-size:13px}
 .steps .ok{color:var(--ok);font-weight:600}
 .reveal{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:12px 16px}
@@ -450,6 +454,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <p>Les résultats sont arrondis à 3 chiffres significatifs.</p>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -511,6 +516,21 @@ function readField(id,allowEmpty=false){
   return ok?x:NaN;
 }
 const sub=(b,s)=>`${b}<sub>${s}</sub>`;
+const MRES='#010203';
+function T(tex,block=true){
+  const src=(block?'\\displaystyle ':'')+tex;
+  if(!window.katex) return `<code class="tex">${tex.replace(/</g,'&lt;')}</code>`;
+  try{ return katex.renderToString(src,{output:'mathml',throwOnError:false,strict:false}).split(`mathcolor="${MRES}"`).join('class="mres"'); }
+  catch(e){ return `<code class="tex">${tex.replace(/</g,'&lt;')}</code>`; }
+}
+function tq(s){ if(s==null||s==='—') return '?'; const k=s.indexOf('\u202f'); const n=(k<0?s:s.slice(0,k)).replace(',','{,}'); const u=k<0?'':s.slice(k+1); return u?`${n}\\,\\text{${u}}`:n; }
+const tv=(x,u)=>tq(fmt(x,u));
+const rq=s=>`{\\color{${MRES}}${tq(s)}}`;
+const tr=(x,u)=>rq(fmt(x,u));
+const tn=x=>String(x).replace('.','{,}');
+function step(tex,note){ const a=Array.isArray(tex)?tex:[tex]; return `<li>${a.map(t=>`<div class="f">${T(t)}</div>`).join('')}${note?`<span class="note">${note}</span>`:''}</li>`; }
+const OK='<span class="ok">✓</span>';
+const mathInline=t=>T(t,false);
 
 /* ---------- SVG ---------- */
 const S={
@@ -551,7 +571,7 @@ window.addEventListener('hashchange',route);
 (function(){
   const F=[['oh-u','Tension U','V','24'],['oh-i','Courant I','A',''],['oh-r','Résistance R','Ω','1k2'],['oh-p','Puissance P','W','']];
   $('#oh-fields').innerHTML=F.map(f=>fieldHTML(f[0],f[1],f[2],f[3],'placeholder="vide = à calculer"')).join('');
-  const FORM={URI:'U = R · I',PUI:'P = U · I',PRI:'P = R · I²',PUR:'P = U² / R'};
+  const FORM={URI:'U=R\\cdot I',PUI:'P=U\\cdot I',PRI:'P=R\\cdot I^2',PUR:'P=\\dfrac{U^2}{R}'};
   function render(){
     const K=['U','I','R','P']; const v={}; let bad=false;
     F.forEach((f,k)=>{const x=readField(f[0],true); if(x!==null&&isNaN(x)) bad=true; v[K[k]]=(x===null||isNaN(x))?null:x;});
@@ -564,24 +584,24 @@ window.addEventListener('hashchange',route);
     if(!bad&&given.length===2){
       switch(given.join('')){
         case 'UI': R=U/I; P=U*I; used=['URI','PUI'];
-          steps.push(`R = U / I = ${fmt(U,'V')} / ${fmt(I,'A')} = <b>${fmt(R,'Ω')}</b>`,`P = U · I = ${fmt(U,'V')} · ${fmt(I,'A')} = <b>${fmt(P,'W')}</b>`); break;
+          steps.push(step(`R=\\dfrac{U}{I}=\\dfrac{${tv(U,'V')}}{${tv(I,'A')}}=${tr(R,'Ω')}`),step(`P=U\\cdot I=${tv(U,'V')}\\cdot ${tv(I,'A')}=${tr(P,'W')}`)); break;
         case 'UR': I=U/R; P=U*U/R; used=['URI','PUR'];
-          steps.push(`I = U / R = ${fmt(U,'V')} / ${fmt(R,'Ω')} = <b>${fmt(I,'A')}</b>`,`P = U² / R = (${fmt(U,'V')})² / ${fmt(R,'Ω')} = <b>${fmt(P,'W')}</b>`); break;
+          steps.push(step(`I=\\dfrac{U}{R}=\\dfrac{${tv(U,'V')}}{${tv(R,'Ω')}}=${tr(I,'A')}`),step(`P=\\dfrac{U^2}{R}=\\dfrac{(${tv(U,'V')})^2}{${tv(R,'Ω')}}=${tr(P,'W')}`)); break;
         case 'UP': I=P/U; R=U*U/P; used=['PUI','PUR'];
-          steps.push(`I = P / U = ${fmt(P,'W')} / ${fmt(U,'V')} = <b>${fmt(I,'A')}</b>`,`R = U² / P = (${fmt(U,'V')})² / ${fmt(P,'W')} = <b>${fmt(R,'Ω')}</b>`); break;
+          steps.push(step(`I=\\dfrac{P}{U}=\\dfrac{${tv(P,'W')}}{${tv(U,'V')}}=${tr(I,'A')}`),step(`R=\\dfrac{U^2}{P}=\\dfrac{(${tv(U,'V')})^2}{${tv(P,'W')}}=${tr(R,'Ω')}`)); break;
         case 'IR': U=R*I; P=R*I*I; used=['URI','PRI'];
-          steps.push(`U = R · I = ${fmt(R,'Ω')} · ${fmt(I,'A')} = <b>${fmt(U,'V')}</b>`,`P = R · I² = ${fmt(R,'Ω')} · (${fmt(I,'A')})² = <b>${fmt(P,'W')}</b>`); break;
+          steps.push(step(`U=R\\cdot I=${tv(R,'Ω')}\\cdot ${tv(I,'A')}=${tr(U,'V')}`),step(`P=R\\cdot I^2=${tv(R,'Ω')}\\cdot (${tv(I,'A')})^2=${tr(P,'W')}`)); break;
         case 'IP': U=P/I; R=P/(I*I); used=['PUI','PRI'];
-          steps.push(`U = P / I = ${fmt(P,'W')} / ${fmt(I,'A')} = <b>${fmt(U,'V')}</b>`,`R = P / I² = ${fmt(P,'W')} / (${fmt(I,'A')})² = <b>${fmt(R,'Ω')}</b>`); break;
+          steps.push(step(`U=\\dfrac{P}{I}=\\dfrac{${tv(P,'W')}}{${tv(I,'A')}}=${tr(U,'V')}`),step(`R=\\dfrac{P}{I^2}=\\dfrac{${tv(P,'W')}}{(${tv(I,'A')})^2}=${tr(R,'Ω')}`)); break;
         case 'RP': U=Math.sqrt(P*R); I=Math.sqrt(P/R); used=['PUR','PRI'];
-          steps.push(`U = √(P · R) = √(${fmt(P,'W')} · ${fmt(R,'Ω')}) = <b>${fmt(U,'V')}</b>`,`I = √(P / R) = √(${fmt(P,'W')} / ${fmt(R,'Ω')}) = <b>${fmt(I,'A')}</b>`); break;
+          steps.push(step(`U=\\sqrt{P\\cdot R}=\\sqrt{${tv(P,'W')}\\cdot ${tv(R,'Ω')}}=${tr(U,'V')}`),step(`I=\\sqrt{\\dfrac{P}{R}}=\\sqrt{\\dfrac{${tv(P,'W')}}{${tv(R,'Ω')}}}=${tr(I,'A')}`)); break;
       }
     } else { U=v.U;I=v.I;R=v.R;P=v.P; }
     const ok=!bad&&given.length===2;
     const stat=(k,cls,label,val,unit)=>`<div class="stat ${cls} ${given.includes(k)?'given':''}"><div class="k">${label}<em>${given.includes(k)?'donnée':(ok?'calculée':'')}</em></div><div class="v">${val!=null?fmt(val,unit):'<span class="q">?</span>'}</div></div>`;
     $('#oh-sum').innerHTML=stat('U','u','Tension U',U,'V')+stat('I','i','Courant I',I,'A')+stat('R','','Résistance R',R,'Ω')+stat('P','','Puissance P',P,'W');
-    $('#oh-form').innerHTML=Object.entries(FORM).map(([k,t])=>`<div class="formula ${used.includes(k)?'used':''}">${t}</div>`).join('');
-    $('#oh-steps').innerHTML=ok?steps.map(s=>`<li>${s}</li>`).join(''):'<li><span class="note">Les étapes apparaissent quand deux grandeurs sont données.</span></li>';
+    $('#oh-form').innerHTML=Object.entries(FORM).map(([k,t])=>`<div class="formula ${used.includes(k)?'used':''}">${mathInline(t)}</div>`).join('');
+    $('#oh-steps').innerHTML=ok?steps.join(''):'<li><span class="note">Les étapes apparaissent quand deux grandeurs sont données.</span></li>';
     // schéma
     const L=110,Rr=470,T=60,B=200,cy=130;
     let s=S.wire([[L,cy-6],[L,T],[Rr,T],[Rr,B],[L,B],[L,cy+6]])+S.battery(L,cy);
@@ -640,7 +660,7 @@ function netTool(cfg){
     const shCls=cfg.kind==='serie'?'u':'i';
     $('#'+p+'-tbl').innerHTML=`<thead><tr><th>Résistance</th><th>Valeur</th><th>Tension U</th><th>Courant I</th><th>Puissance P</th><th>${cfg.kind==='serie'?'Part de U':'Part de I'}</th></tr></thead><tbody>`+
       r.rows.map(row=>`<tr><td>${sub('R',row.n)}</td><td>${fmt(row.R,'Ω')}</td><td class="u">${cfg.kind==='parallele'?fmt(row.U,'V'):V(row.U,'V')}</td><td class="i">${cfg.kind==='serie'?V(row.I,'A'):V(row.I,'A')}</td><td>${V(row.P,'W')}</td><td class="${shCls}">${M?q:Math.round(share(row)*100)+' %'}<span class="bar"><i style="width:${M?0:Math.round(share(row)*100)}%"></i></span></td></tr>`).join('')+'</tbody>';
-    $('#'+p+'-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':cfg.steps(U,Rs,r).map(s=>`<li>${s}</li>`).join('');
+    $('#'+p+'-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':cfg.steps(U,Rs,r).join('');
   }
   build(); render();
 }
@@ -648,12 +668,12 @@ const plus=(arr)=>arr.join(' + ');
 netTool({p:'se',kind:'serie',max:6,U:'24',vals:['220','470','1k'],
   calc(U,Rs){const Rt=Rs.reduce((a,b)=>a+b,0);const I=U/Rt;return{Rt,I,P:U*I,rows:Rs.map((R,i)=>({n:i+1,R,U:R*I,I,P:R*I*I}))};},
   steps(U,Rs,r){
-    const s=[];
-    s.push(`${sub('R','tot')} = ${plus(Rs.map((_,i)=>sub('R',i+1)))} = ${plus(Rs.map(x=>fmt(x,'Ω')))} = <b>${fmt(r.Rt,'Ω')}</b><span class="note">En série, les résistances s’additionnent.</span>`);
-    s.push(`I = U / ${sub('R','tot')} = ${fmt(U,'V')} / ${fmt(r.Rt,'Ω')} = <b>${fmt(r.I,'A')}</b><span class="note">Le courant est le même dans toutes les résistances.</span>`);
-    r.rows.forEach(row=>s.push(`${sub('U',row.n)} = ${sub('R',row.n)} · I = ${fmt(row.R,'Ω')} · ${fmt(r.I,'A')} = <b>${fmt(row.U,'V')}</b>`));
-    s.push(`${plus(r.rows.map(row=>sub('U',row.n)))} = ${fmt(r.rows.reduce((a,b)=>a+b.U,0),'V')} = U <span class="ok">✓</span><span class="note">Loi des mailles : la somme des tensions partielles égale la tension de la source.</span>`);
-    s.push(`P = U · I = ${fmt(U,'V')} · ${fmt(r.I,'A')} = <b>${fmt(r.P,'W')}</b>`);
+    const s=[]; const idx=Rs.map((_,i)=>i+1);
+    s.push(step(`R_{\\text{tot}}=${idx.map(i=>'R_{'+i+'}').join('+')}=${Rs.map(x=>tv(x,'Ω')).join('+')}=${tr(r.Rt,'Ω')}`,'En série, les résistances s’additionnent.'));
+    s.push(step(`I=\\dfrac{U}{R_{\\text{tot}}}=\\dfrac{${tv(U,'V')}}{${tv(r.Rt,'Ω')}}=${tr(r.I,'A')}`,'Le courant est le même dans toutes les résistances.'));
+    s.push(step(r.rows.map(row=>`U_{${row.n}}=R_{${row.n}}\\cdot I=${tv(row.R,'Ω')}\\cdot ${tv(r.I,'A')}=${tr(row.U,'V')}`)));
+    s.push(step(`${idx.map(i=>'U_{'+i+'}').join('+')}=${tv(r.rows.reduce((a,b)=>a+b.U,0),'V')}=U`,OK+' Loi des mailles : la somme des tensions partielles égale la tension de la source.'));
+    s.push(step(`P=U\\cdot I=${tv(U,'V')}\\cdot ${tv(r.I,'A')}=${tr(r.P,'W')}`));
     return s;
   },
   svg(U,Rs,r,M){
@@ -669,12 +689,15 @@ netTool({p:'se',kind:'serie',max:6,U:'24',vals:['220','470','1k'],
 netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
   calc(U,Rs){const G=Rs.reduce((a,b)=>a+1/b,0);const Rt=1/G;const I=U/Rt;return{Rt,I,P:U*I,rows:Rs.map((R,i)=>({n:i+1,R,U,I:U/R,P:U*U/R}))};},
   steps(U,Rs,r){
-    const s=[];
-    s.push(`1 / ${sub('R','éq')} = ${plus(Rs.map((_,i)=>'1/'+sub('R',i+1)))}<br>${sub('R','éq')} = 1 / (${plus(Rs.map(x=>'1/'+fmt(x,'Ω')))}) = <b>${fmt(r.Rt,'Ω')}</b><span class="note">${Rs.length===2?'Avec deux résistances, on peut aussi écrire R<sub>éq</sub> = R<sub>1</sub> · R<sub>2</sub> / (R<sub>1</sub> + R<sub>2</sub>). ':''}R<sub>éq</sub> est toujours plus petite que la plus petite résistance.</span>`);
-    r.rows.forEach(row=>s.push(`${sub('I',row.n)} = U / ${sub('R',row.n)} = ${fmt(U,'V')} / ${fmt(row.R,'Ω')} = <b>${fmt(row.I,'A')}</b>`));
-    s.push(`I = ${plus(r.rows.map(row=>sub('I',row.n)))} = <b>${fmt(r.I,'A')}</b><span class="note">Loi des nœuds : le courant total est la somme des courants de branche.</span>`);
-    s.push(`Contrôle : U / ${sub('R','éq')} = ${fmt(U,'V')} / ${fmt(r.Rt,'Ω')} = ${fmt(U/r.Rt,'A')} <span class="ok">✓</span>`);
-    s.push(`P = U · I = ${fmt(U,'V')} · ${fmt(r.I,'A')} = <b>${fmt(r.P,'W')}</b>`);
+    const s=[]; const idx=Rs.map((_,i)=>i+1);
+    const t=[`\\dfrac{1}{R_{\\text{éq}}}=${idx.map(i=>`\\dfrac{1}{R_{${i}}}`).join('+')}`,
+      `R_{\\text{éq}}=\\cfrac{1}{${Rs.map(x=>`\\dfrac{1}{${tv(x,'Ω')}}`).join('+')}}=${tr(r.Rt,'Ω')}`];
+    if(Rs.length===2) t.push(`R_{\\text{éq}}=\\dfrac{R_1\\cdot R_2}{R_1+R_2}=\\dfrac{${tv(Rs[0],'Ω')}\\cdot ${tv(Rs[1],'Ω')}}{${tv(Rs[0],'Ω')}+${tv(Rs[1],'Ω')}}=${tr(r.Rt,'Ω')}`);
+    s.push(step(t,(Rs.length===2?'Avec deux résistances, la formule « produit sur somme » donne le même résultat. ':'')+'R<sub>éq</sub> est toujours plus petite que la plus petite résistance.'));
+    s.push(step(r.rows.map(row=>`I_{${row.n}}=\\dfrac{U}{R_{${row.n}}}=\\dfrac{${tv(U,'V')}}{${tv(row.R,'Ω')}}=${tr(row.I,'A')}`),'La tension est la même sur chaque branche.'));
+    s.push(step(`I=${idx.map(i=>'I_{'+i+'}').join('+')}=${tr(r.I,'A')}`,'Loi des nœuds : le courant total est la somme des courants de branche.'));
+    s.push(step(`\\dfrac{U}{R_{\\text{éq}}}=\\dfrac{${tv(U,'V')}}{${tv(r.Rt,'Ω')}}=${tv(U/r.Rt,'A')}=I`,OK+' Contrôle avec la résistance équivalente.'));
+    s.push(step(`P=U\\cdot I=${tv(U,'V')}\\cdot ${tv(r.I,'A')}=${tr(r.P,'W')}`));
     return s;
   },
   svg(U,Rs,r,M){
@@ -699,6 +722,7 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
 (function(){
   const par=(a,b)=>a*b/(a+b);
   const f=fmt;
+  const P2=(a,b,va,vb)=>`\\dfrac{${a}\\cdot ${b}}{${a}+${b}}=\\dfrac{${va}\\cdot ${vb}}{${va}+${vb}}`;
   const ok=' <span class="ok">✓</span>';
   const term=(x,y)=>`<circle cx="${x}" cy="${y}" r="4" fill="var(--surface)" stroke="var(--wire)" stroke-width="2"/>`;
   const TOPOS={
@@ -707,13 +731,13 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       calc(U,R){
         const s=[]; const R23=par(R[1],R[2]), Rt=R[0]+R23, I=U/Rt, U1=R[0]*I, U23=R23*I, I2=U23/R[1], I3=U23/R[2];
         const rows=[{n:1,R:R[0],U:U1,I},{n:2,R:R[1],U:U23,I:I2},{n:3,R:R[2],U:U23,I:I3}];
-        s.push(`${sub('R',23)} = ${sub('R',2)} · ${sub('R',3)} / (${sub('R',2)} + ${sub('R',3)}) = ${f(R[1],'Ω')} · ${f(R[2],'Ω')} / (${f(R[1],'Ω')} + ${f(R[2],'Ω')}) = <b>${f(R23,'Ω')}</b><span class="note">R2 et R3 sont en parallèle : on les remplace par R23.</span>`);
-        s.push(`${sub('R','tot')} = ${sub('R',1)} + ${sub('R',23)} = ${f(R[0],'Ω')} + ${f(R23,'Ω')} = <b>${f(Rt,'Ω')}</b><span class="note">R1 et R23 sont en série.</span>`);
-        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b><span class="note">C’est aussi le courant dans R1.</span>`);
-        s.push(`${sub('U',1)} = ${sub('R',1)} · I = ${f(R[0],'Ω')} · ${f(I,'A')} = <b>${f(U1,'V')}</b>`);
-        s.push(`${sub('U',23)} = U − ${sub('U',1)} = ${f(U,'V')} − ${f(U1,'V')} = <b>${f(U23,'V')}</b><span class="note">Même tension sur R2 et R3, car elles sont en parallèle.</span>`);
-        s.push(`${sub('I',2)} = ${sub('U',23)} / ${sub('R',2)} = <b>${f(I2,'A')}</b> · ${sub('I',3)} = ${sub('U',23)} / ${sub('R',3)} = <b>${f(I3,'A')}</b>`);
-        s.push(`${sub('I',2)} + ${sub('I',3)} = ${f(I2+I3,'A')} = I`+ok);
+        s.push(step(`R_{23}=${P2('R_2','R_3',tv(R[1],'Ω'),tv(R[2],'Ω'))}=${tr(R23,'Ω')}`,'R2 et R3 sont en parallèle : on les remplace par R23.'));
+        s.push(step(`R_{\\text{tot}}=R_1+R_{23}=${tv(R[0],'Ω')}+${tv(R23,'Ω')}=${tr(Rt,'Ω')}`,'R1 et R23 sont en série.'));
+        s.push(step(`I=\\dfrac{U}{R_{\\text{tot}}}=\\dfrac{${tv(U,'V')}}{${tv(Rt,'Ω')}}=${tr(I,'A')}`,'C’est aussi le courant dans R1.'));
+        s.push(step(`U_1=R_1\\cdot I=${tv(R[0],'Ω')}\\cdot ${tv(I,'A')}=${tr(U1,'V')}`));
+        s.push(step(`U_{23}=U-U_1=${tv(U,'V')}-${tv(U1,'V')}=${tr(U23,'V')}`,'Même tension sur R2 et R3, car elles sont en parallèle.'));
+        s.push(step([`I_2=\\dfrac{U_{23}}{R_2}=\\dfrac{${tv(U23,'V')}}{${tv(R[1],'Ω')}}=${tr(I2,'A')}`,`I_3=\\dfrac{U_{23}}{R_3}=\\dfrac{${tv(U23,'V')}}{${tv(R[2],'Ω')}}=${tr(I3,'A')}`]));
+        s.push(step(`I_2+I_3=${tv(I2+I3,'A')}=I`,OK+' Loi des nœuds.'));
         return {Rt,I,rows,steps:s};
       },
       svg(U,R,r,V){
@@ -733,12 +757,12 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       calc(U,R){
         const s=[]; const R12=R[0]+R[1], Rt=par(R12,R[2]), I=U/Rt, I12=U/R12, I3=U/R[2];
         const rows=[{n:1,R:R[0],U:R[0]*I12,I:I12},{n:2,R:R[1],U:R[1]*I12,I:I12},{n:3,R:R[2],U,I:I3}];
-        s.push(`${sub('R',12)} = ${sub('R',1)} + ${sub('R',2)} = ${f(R[0],'Ω')} + ${f(R[1],'Ω')} = <b>${f(R12,'Ω')}</b><span class="note">R1 et R2 sont en série dans la même branche.</span>`);
-        s.push(`${sub('R','tot')} = ${sub('R',12)} · ${sub('R',3)} / (${sub('R',12)} + ${sub('R',3)}) = <b>${f(Rt,'Ω')}</b><span class="note">La branche R12 est en parallèle avec R3.</span>`);
-        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
-        s.push(`${sub('I',12)} = U / ${sub('R',12)} = <b>${f(I12,'A')}</b> · ${sub('I',3)} = U / ${sub('R',3)} = <b>${f(I3,'A')}</b><span class="note">Chaque branche reçoit toute la tension U.</span>`);
-        s.push(`${sub('U',1)} = ${sub('R',1)} · ${sub('I',12)} = <b>${f(rows[0].U,'V')}</b> · ${sub('U',2)} = ${sub('R',2)} · ${sub('I',12)} = <b>${f(rows[1].U,'V')}</b>`);
-        s.push(`${sub('I',12)} + ${sub('I',3)} = ${f(I12+I3,'A')} = I`+ok+` · ${sub('U',1)} + ${sub('U',2)} = ${f(rows[0].U+rows[1].U,'V')} = U`+ok);
+        s.push(step(`R_{12}=R_1+R_2=${tv(R[0],'Ω')}+${tv(R[1],'Ω')}=${tr(R12,'Ω')}`,'R1 et R2 sont en série dans la même branche.'));
+        s.push(step(`R_{\\text{tot}}=${P2('R_{12}','R_3',tv(R12,'Ω'),tv(R[2],'Ω'))}=${tr(Rt,'Ω')}`,'La branche R12 est en parallèle avec R3.'));
+        s.push(step(`I=\\dfrac{U}{R_{\\text{tot}}}=\\dfrac{${tv(U,'V')}}{${tv(Rt,'Ω')}}=${tr(I,'A')}`));
+        s.push(step([`I_{12}=\\dfrac{U}{R_{12}}=\\dfrac{${tv(U,'V')}}{${tv(R12,'Ω')}}=${tr(I12,'A')}`,`I_3=\\dfrac{U}{R_3}=\\dfrac{${tv(U,'V')}}{${tv(R[2],'Ω')}}=${tr(I3,'A')}`],'Chaque branche reçoit toute la tension U.'));
+        s.push(step([`U_1=R_1\\cdot I_{12}=${tv(R[0],'Ω')}\\cdot ${tv(I12,'A')}=${tr(rows[0].U,'V')}`,`U_2=R_2\\cdot I_{12}=${tv(R[1],'Ω')}\\cdot ${tv(I12,'A')}=${tr(rows[1].U,'V')}`]));
+        s.push(step([`I_{12}+I_3=${tv(I12+I3,'A')}=I`,`U_1+U_2=${tv(rows[0].U+rows[1].U,'V')}=U`],OK+' Loi des nœuds et loi des mailles.'));
         return {Rt,I,rows,steps:s};
       },
       svg(U,R,r,V){
@@ -757,12 +781,12 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       calc(U,R){
         const s=[]; const R12=par(R[0],R[1]), R34=par(R[2],R[3]), Rt=R12+R34, I=U/Rt, U12=R12*I, U34=R34*I;
         const rows=[{n:1,R:R[0],U:U12,I:U12/R[0]},{n:2,R:R[1],U:U12,I:U12/R[1]},{n:3,R:R[2],U:U34,I:U34/R[2]},{n:4,R:R[3],U:U34,I:U34/R[3]}];
-        s.push(`${sub('R',12)} = ${sub('R',1)} · ${sub('R',2)} / (${sub('R',1)} + ${sub('R',2)}) = <b>${f(R12,'Ω')}</b> · ${sub('R',34)} = ${sub('R',3)} · ${sub('R',4)} / (${sub('R',3)} + ${sub('R',4)}) = <b>${f(R34,'Ω')}</b>`);
-        s.push(`${sub('R','tot')} = ${sub('R',12)} + ${sub('R',34)} = <b>${f(Rt,'Ω')}</b><span class="note">Les deux groupes sont en série.</span>`);
-        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
-        s.push(`${sub('U',12)} = ${sub('R',12)} · I = <b>${f(U12,'V')}</b> · ${sub('U',34)} = ${sub('R',34)} · I = <b>${f(U34,'V')}</b>`);
-        s.push(rows.map(x=>`${sub('I',x.n)} = <b>${f(x.I,'A')}</b>`).join(' · ')+`<span class="note">I1 = U12 / R1, I2 = U12 / R2, I3 = U34 / R3, I4 = U34 / R4</span>`);
-        s.push(`${sub('U',12)} + ${sub('U',34)} = ${f(U12+U34,'V')} = U`+ok);
+        s.push(step([`R_{12}=${P2('R_1','R_2',tv(R[0],'Ω'),tv(R[1],'Ω'))}=${tr(R12,'Ω')}`,`R_{34}=${P2('R_3','R_4',tv(R[2],'Ω'),tv(R[3],'Ω'))}=${tr(R34,'Ω')}`],'Chaque groupe parallèle est remplacé par une seule résistance.'));
+        s.push(step(`R_{\\text{tot}}=R_{12}+R_{34}=${tv(R12,'Ω')}+${tv(R34,'Ω')}=${tr(Rt,'Ω')}`,'Les deux groupes sont en série.'));
+        s.push(step(`I=\\dfrac{U}{R_{\\text{tot}}}=\\dfrac{${tv(U,'V')}}{${tv(Rt,'Ω')}}=${tr(I,'A')}`));
+        s.push(step([`U_{12}=R_{12}\\cdot I=${tv(R12,'Ω')}\\cdot ${tv(I,'A')}=${tr(U12,'V')}`,`U_{34}=R_{34}\\cdot I=${tv(R34,'Ω')}\\cdot ${tv(I,'A')}=${tr(U34,'V')}`]));
+        s.push(step(rows.map(x=>`I_{${x.n}}=\\dfrac{U_{${x.n<3?'12':'34'}}}{R_{${x.n}}}=\\dfrac{${tv(x.U,'V')}}{${tv(x.R,'Ω')}}=${tr(x.I,'A')}`)));
+        s.push(step(`U_{12}+U_{34}=${tv(U12+U34,'V')}=U`,OK+' Loi des mailles.'));
         return {Rt,I,rows,steps:s};
       },
       svg(U,R,r,V){
@@ -784,14 +808,14 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       calc(U,R){
         const s=[]; const R12=par(R[0],R[1]), Rh=R12+R[2]+R[3], Rt=par(Rh,R[4]), I=U/Rt, I5=U/R[4], Ih=U/Rh, U12=R12*Ih;
         const rows=[{n:1,R:R[0],U:U12,I:U12/R[0]},{n:2,R:R[1],U:U12,I:U12/R[1]},{n:3,R:R[2],U:R[2]*Ih,I:Ih},{n:4,R:R[3],U:R[3]*Ih,I:Ih},{n:5,R:R[4],U,I:I5}];
-        s.push(`${sub('R',12)} = ${sub('R',1)} · ${sub('R',2)} / (${sub('R',1)} + ${sub('R',2)}) = ${f(R[0],'Ω')} · ${f(R[1],'Ω')} / (${f(R[0],'Ω')} + ${f(R[1],'Ω')}) = <b>${f(R12,'Ω')}</b><span class="note">R1 et R2 sont en parallèle.</span>`);
-        s.push(`${sub('R',1234)} = ${sub('R',12)} + ${sub('R',3)} + ${sub('R',4)} = ${f(R12,'Ω')} + ${f(R[2],'Ω')} + ${f(R[3],'Ω')} = <b>${f(Rh,'Ω')}</b><span class="note">R12, R3 et R4 sont en série dans la branche du haut.</span>`);
-        s.push(`${sub('R','AB')} = ${sub('R',1234)} · ${sub('R',5)} / (${sub('R',1234)} + ${sub('R',5)}) = ${f(Rh,'Ω')} · ${f(R[4],'Ω')} / (${f(Rh,'Ω')} + ${f(R[4],'Ω')}) = <b>${f(Rt,'Ω')}</b><span class="note">La branche du haut est en parallèle avec R5.</span>`);
-        s.push(`I = ${sub('U','AB')} / ${sub('R','AB')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
-        s.push(`${sub('I',5)} = ${sub('U','AB')} / ${sub('R',5)} = <b>${f(I5,'A')}</b> · ${sub('I',1234)} = ${sub('U','AB')} / ${sub('R',1234)} = <b>${f(Ih,'A')}</b><span class="note">Les deux branches reçoivent toute la tension U<sub>AB</sub>.</span>`);
-        s.push(`${sub('U',12)} = ${sub('R',12)} · ${sub('I',1234)} = <b>${f(U12,'V')}</b> · ${sub('U',3)} = ${sub('R',3)} · ${sub('I',1234)} = <b>${f(rows[2].U,'V')}</b> · ${sub('U',4)} = ${sub('R',4)} · ${sub('I',1234)} = <b>${f(rows[3].U,'V')}</b>`);
-        s.push(`${sub('I',1)} = ${sub('U',12)} / ${sub('R',1)} = <b>${f(rows[0].I,'A')}</b> · ${sub('I',2)} = ${sub('U',12)} / ${sub('R',2)} = <b>${f(rows[1].I,'A')}</b>`);
-        s.push(`${sub('U',12)} + ${sub('U',3)} + ${sub('U',4)} = ${f(U12+rows[2].U+rows[3].U,'V')} = ${sub('U','AB')}`+ok+` · ${sub('I',1234)} + ${sub('I',5)} = ${f(Ih+I5,'A')} = I`+ok);
+        s.push(step(`R_{12}=${P2('R_1','R_2',tv(R[0],'Ω'),tv(R[1],'Ω'))}=${tr(R12,'Ω')}`,'R1 et R2 sont en parallèle.'));
+        s.push(step(`R_{1234}=R_{12}+R_3+R_4=${tv(R12,'Ω')}+${tv(R[2],'Ω')}+${tv(R[3],'Ω')}=${tr(Rh,'Ω')}`,'R12, R3 et R4 sont en série dans la branche du haut.'));
+        s.push(step(`R_{AB}=${P2('R_{1234}','R_5',tv(Rh,'Ω'),tv(R[4],'Ω'))}=${tr(Rt,'Ω')}`,'La branche du haut est en parallèle avec R5.'));
+        s.push(step(`I=\\dfrac{U_{AB}}{R_{AB}}=\\dfrac{${tv(U,'V')}}{${tv(Rt,'Ω')}}=${tr(I,'A')}`));
+        s.push(step([`I_5=\\dfrac{U_{AB}}{R_5}=\\dfrac{${tv(U,'V')}}{${tv(R[4],'Ω')}}=${tr(I5,'A')}`,`I_{1234}=\\dfrac{U_{AB}}{R_{1234}}=\\dfrac{${tv(U,'V')}}{${tv(Rh,'Ω')}}=${tr(Ih,'A')}`],'Les deux branches reçoivent toute la tension U<sub>AB</sub>.'));
+        s.push(step([`U_{12}=R_{12}\\cdot I_{1234}=${tv(R12,'Ω')}\\cdot ${tv(Ih,'A')}=${tr(U12,'V')}`,`U_3=R_3\\cdot I_{1234}=${tv(R[2],'Ω')}\\cdot ${tv(Ih,'A')}=${tr(rows[2].U,'V')}`,`U_4=R_4\\cdot I_{1234}=${tv(R[3],'Ω')}\\cdot ${tv(Ih,'A')}=${tr(rows[3].U,'V')}`]));
+        s.push(step([`I_1=\\dfrac{U_{12}}{R_1}=\\dfrac{${tv(U12,'V')}}{${tv(R[0],'Ω')}}=${tr(rows[0].I,'A')}`,`I_2=\\dfrac{U_{12}}{R_2}=\\dfrac{${tv(U12,'V')}}{${tv(R[1],'Ω')}}=${tr(rows[1].I,'A')}`]));
+        s.push(step([`U_{12}+U_3+U_4=${tv(U12+rows[2].U+rows[3].U,'V')}=U_{AB}`,`I_{1234}+I_5=${tv(Ih+I5,'A')}=I`],OK+' Loi des mailles et loi des nœuds.'));
         return {Rt,I,rows,steps:s};
       },
       svg(U,R,r,V){
@@ -817,18 +841,18 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
         const s=[]; const R56=R[4]+R[5], R456=par(R[3],R56), R4567=R456+R[6], R23=R[1]+R[2];
         const Rt=1/(1/R[0]+1/R23+1/R4567), I=U/Rt, I1=U/R[0], I23=U/R23, I7=U/R4567, U7=R[6]*I7, UFI=U-U7, I4=UFI/R[3], I56=UFI/R56;
         const rows=[{n:1,R:R[0],U,I:I1},{n:2,R:R[1],U:R[1]*I23,I:I23},{n:3,R:R[2],U:R[2]*I23,I:I23},{n:4,R:R[3],U:UFI,I:I4},{n:5,R:R[4],U:R[4]*I56,I:I56},{n:6,R:R[5],U:R[5]*I56,I:I56},{n:7,R:R[6],U:U7,I:I7}];
-        s.push(`${sub('R',56)} = ${sub('R',5)} + ${sub('R',6)} = ${f(R[4],'Ω')} + ${f(R[5],'Ω')} = <b>${f(R56,'Ω')}</b><span class="note">R5 et R6 sont en série (branche G–H–I).</span>`);
-        s.push(`${sub('R',456)} = ${sub('R',4)} · ${sub('R',56)} / (${sub('R',4)} + ${sub('R',56)}) = ${f(R[3],'Ω')} · ${f(R56,'Ω')} / (${f(R[3],'Ω')} + ${f(R56,'Ω')}) = <b>${f(R456,'Ω')}</b><span class="note">R4 et R56 sont en parallèle entre F et I.</span>`);
-        s.push(`${sub('R',4567)} = ${sub('R',456)} + ${sub('R',7)} = ${f(R456,'Ω')} + ${f(R[6],'Ω')} = <b>${f(R4567,'Ω')}</b><span class="note">R456 est en série avec R7 (entre I et J).</span>`);
-        s.push(`${sub('R',23)} = ${sub('R',2)} + ${sub('R',3)} = ${f(R[1],'Ω')} + ${f(R[2],'Ω')} = <b>${f(R23,'Ω')}</b><span class="note">R2 et R3 sont en série (branche C–D–E).</span>`);
-        s.push(`1 / ${sub('R','tot')} = 1/${sub('R',1)} + 1/${sub('R',23)} + 1/${sub('R',4567)}<br>${sub('R','tot')} = 1 / (1/${f(R[0],'Ω')} + 1/${f(R23,'Ω')} + 1/${f(R4567,'Ω')}) = <b>${f(Rt,'Ω')}</b><span class="note">Les trois branches sont en parallèle sur la source.</span>`);
-        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
-        s.push(`${sub('I',1)} = U / ${sub('R',1)} = <b>${f(I1,'A')}</b> · ${sub('I',23)} = U / ${sub('R',23)} = <b>${f(I23,'A')}</b> · ${sub('I',7)} = U / ${sub('R',4567)} = <b>${f(I7,'A')}</b>`);
-        s.push(`${sub('U',2)} = ${sub('R',2)} · ${sub('I',23)} = <b>${f(rows[1].U,'V')}</b> · ${sub('U',3)} = ${sub('R',3)} · ${sub('I',23)} = <b>${f(rows[2].U,'V')}</b><span class="note">U3 est aussi la tension entre D et E.</span>`);
-        s.push(`${sub('U',7)} = ${sub('R',7)} · ${sub('I',7)} = <b>${f(U7,'V')}</b> · ${sub('U','FI')} = U − ${sub('U',7)} = ${f(U,'V')} − ${f(U7,'V')} = <b>${f(UFI,'V')}</b><span class="note">U<sub>FI</sub> est la tension sur R4 et sur la branche R5 + R6.</span>`);
-        s.push(`${sub('I',4)} = ${sub('U','FI')} / ${sub('R',4)} = <b>${f(I4,'A')}</b> · ${sub('I',56)} = ${sub('U','FI')} / ${sub('R',56)} = <b>${f(I56,'A')}</b>`);
-        s.push(`${sub('U',5)} = ${sub('R',5)} · ${sub('I',56)} = <b>${f(rows[4].U,'V')}</b> · ${sub('U',6)} = ${sub('R',6)} · ${sub('I',56)} = <b>${f(rows[5].U,'V')}</b>`);
-        s.push(`${sub('I',1)} + ${sub('I',23)} + ${sub('I',7)} = ${f(I1+I23+I7,'A')} = I`+ok+` · ${sub('I',4)} + ${sub('I',56)} = ${f(I4+I56,'A')} = ${sub('I',7)}`+ok);
+        s.push(step(`R_{56}=R_5+R_6=${tv(R[4],'Ω')}+${tv(R[5],'Ω')}=${tr(R56,'Ω')}`,'R5 et R6 sont en série (branche G–H–I).'));
+        s.push(step(`R_{456}=${P2('R_4','R_{56}',tv(R[3],'Ω'),tv(R56,'Ω'))}=${tr(R456,'Ω')}`,'R4 et R56 sont en parallèle entre F et I.'));
+        s.push(step(`R_{4567}=R_{456}+R_7=${tv(R456,'Ω')}+${tv(R[6],'Ω')}=${tr(R4567,'Ω')}`,'R456 est en série avec R7 (entre I et J).'));
+        s.push(step(`R_{23}=R_2+R_3=${tv(R[1],'Ω')}+${tv(R[2],'Ω')}=${tr(R23,'Ω')}`,'R2 et R3 sont en série (branche C–D–E).'));
+        s.push(step([`\\dfrac{1}{R_{\\text{tot}}}=\\dfrac{1}{R_1}+\\dfrac{1}{R_{23}}+\\dfrac{1}{R_{4567}}`,`R_{\\text{tot}}=\\cfrac{1}{\\dfrac{1}{${tv(R[0],'Ω')}}+\\dfrac{1}{${tv(R23,'Ω')}}+\\dfrac{1}{${tv(R4567,'Ω')}}}=${tr(Rt,'Ω')}`],'Les trois branches sont en parallèle sur la source.'));
+        s.push(step(`I=\\dfrac{U}{R_{\\text{tot}}}=\\dfrac{${tv(U,'V')}}{${tv(Rt,'Ω')}}=${tr(I,'A')}`));
+        s.push(step([`I_1=\\dfrac{U}{R_1}=\\dfrac{${tv(U,'V')}}{${tv(R[0],'Ω')}}=${tr(I1,'A')}`,`I_{23}=\\dfrac{U}{R_{23}}=\\dfrac{${tv(U,'V')}}{${tv(R23,'Ω')}}=${tr(I23,'A')}`,`I_7=\\dfrac{U}{R_{4567}}=\\dfrac{${tv(U,'V')}}{${tv(R4567,'Ω')}}=${tr(I7,'A')}`]));
+        s.push(step([`U_2=R_2\\cdot I_{23}=${tv(R[1],'Ω')}\\cdot ${tv(I23,'A')}=${tr(rows[1].U,'V')}`,`U_3=R_3\\cdot I_{23}=${tv(R[2],'Ω')}\\cdot ${tv(I23,'A')}=${tr(rows[2].U,'V')}`],'U<sub>3</sub> est aussi la tension entre D et E.'));
+        s.push(step([`U_7=R_7\\cdot I_7=${tv(R[6],'Ω')}\\cdot ${tv(I7,'A')}=${tr(U7,'V')}`,`U_{FI}=U-U_7=${tv(U,'V')}-${tv(U7,'V')}=${tr(UFI,'V')}`],'U<sub>FI</sub> est la tension sur R4 et sur la branche R5 + R6.'));
+        s.push(step([`I_4=\\dfrac{U_{FI}}{R_4}=\\dfrac{${tv(UFI,'V')}}{${tv(R[3],'Ω')}}=${tr(I4,'A')}`,`I_{56}=\\dfrac{U_{FI}}{R_{56}}=\\dfrac{${tv(UFI,'V')}}{${tv(R56,'Ω')}}=${tr(I56,'A')}`]));
+        s.push(step([`U_5=R_5\\cdot I_{56}=${tv(R[4],'Ω')}\\cdot ${tv(I56,'A')}=${tr(rows[4].U,'V')}`,`U_6=R_6\\cdot I_{56}=${tv(R[5],'Ω')}\\cdot ${tv(I56,'A')}=${tr(rows[5].U,'V')}`]));
+        s.push(step([`I_1+I_{23}+I_7=${tv(I1+I23+I7,'A')}=I`,`I_4+I_{56}=${tv(I4+I56,'A')}=I_7`],OK+' Loi des nœuds.'));
         return {Rt,I,rows,steps:s};
       },
       svg(U,R,r,V){
@@ -880,7 +904,7 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     $('#mx-sum').innerHTML=`<div class="stat"><div class="k">${T.rt||'R<sub>tot</sub>'}</div><div class="v">${V(r.Rt,'Ω')}</div></div><div class="stat i"><div class="k">Courant total I</div><div class="v">${V(r.I,'A')}</div></div><div class="stat"><div class="k">Puissance totale P</div><div class="v">${V(r.P,'W')}</div></div>`;
     $('#mx-tbl').innerHTML='<thead><tr><th>Résistance</th><th>Valeur</th><th>Tension U</th><th>Courant I</th><th>Puissance P</th></tr></thead><tbody>'+
       r.rows.map(x=>`<tr><td>${sub('R',x.n)}</td><td>${fmt(x.R,'Ω')}</td><td class="u">${V(x.U,'V')}</td><td class="i">${V(x.I,'A')}</td><td>${V(x.P,'W')}</td></tr>`).join('')+'</tbody>';
-    $('#mx-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':r.steps.map(s=>`<li>${s}</li>`).join('');
+    $('#mx-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':r.steps.join('');
   }
   build(); render();
 })();
@@ -969,19 +993,23 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       `<div class="stat u"><div class="k">Tension au récepteur</div><div class="v">${Q(Ur,'V')}</div></div>`+
       `<div class="stat"><div class="k">Pertes dans la ligne</div><div class="v">${Q(Pv,'W')}</div></div>`+
       `<div class="stat"><div class="k">Section min. (ΔU ≤ ${num(lim)} %)</div><div class="v">${M?'<span class="q">?</span>':(An?num(An)+' mm²':'> 240 mm²')}</div></div>`;
-    const s=[];
-    s.push(`${sub('R','c')} = ρ · l / A = ${num(rho)} Ω·mm²/m · ${num(l)} m / ${num(A)} mm² = <b>${fu(Rc,'Ω')}</b><span class="note">Résistance d’un seul conducteur.</span>`);
+    const s=[]; const F=(x,u)=>tq(fu(x,u)), FR=(x,u)=>rq(fu(x,u)), nt=x=>num(x).replace(',','{,}');
+    const tc=type==='dc'?'':'\\cdot\\cos\\varphi', tvc=type==='dc'?'':'\\cdot '+nt(cos), kt=tri?'\\sqrt{3}':'2';
+    s.push(step(`R_c=\\dfrac{\\rho\\cdot l}{A}=\\dfrac{${nt(rho)}\\,\\Omega\\cdot\\text{mm}^2/\\text{m}\\cdot ${nt(l)}\\,\\text{m}}{${nt(A)}\\,\\text{mm²}}=${FR(Rc,'Ω')}`,'Résistance d’un seul conducteur.'));
     if(!tri){
-      s.push(`${sub('R','L')} = 2 · ${sub('R','c')} = 2 · ${fu(Rc,'Ω')} = <b>${fu(2*Rc,'Ω')}</b><span class="note">Le courant fait l’aller et le retour : deux conducteurs en série.</span>`);
-      s.push(`ΔU = ${sub('R','L')} · I${ccos} = ${fu(2*Rc,'Ω')} · ${fu(I,'A')}${vcos} = <b>${fu(dU,'V')}</b>${type==='mono'?'<span class="note">Formule simplifiée : on néglige l’inductance de la ligne.</span>':''}`);
+      s.push(step(`R_L=2\\cdot R_c=2\\cdot ${F(Rc,'Ω')}=${FR(2*Rc,'Ω')}`,'Le courant fait l’aller et le retour : deux conducteurs en série.'));
+      s.push(step(`\\Delta U=R_L\\cdot I${tc}=${F(2*Rc,'Ω')}\\cdot ${F(I,'A')}${tvc}=${FR(dU,'V')}`,type==='mono'?'Formule simplifiée : on néglige l’inductance de la ligne.':''));
     } else {
-      s.push(`ΔU = √3 · ${sub('R','c')} · I · cos φ = 1,732 · ${fu(Rc,'Ω')} · ${fu(I,'A')} · ${num(cos)} = <b>${fu(dU,'V')}</b><span class="note">En triphasé équilibré, la chute de la tension composée vaut √3 fois la chute sur un conducteur. On néglige l’inductance de la ligne.</span>`);
+      s.push(step(`\\Delta U=\\sqrt{3}\\cdot R_c\\cdot I\\cdot\\cos\\varphi=\\sqrt{3}\\cdot ${F(Rc,'Ω')}\\cdot ${F(I,'A')}\\cdot ${nt(cos)}=${FR(dU,'V')}`,'En triphasé équilibré, la chute de la tension composée vaut √3 fois la chute sur un conducteur. On néglige l’inductance de la ligne.'));
     }
-    s.push(`ΔU % = ΔU / U · 100 = ${fu(dU,'V')} / ${fmt(U,'V')} · 100 = <b>${num(pct.toFixed(2))} %</b> ${okDrop?'<span class="ok">✓ ≤ '+num(lim)+' %</span>':'<span style="color:var(--bad);font-weight:600">✗ > '+num(lim)+' %</span>'}`);
-    s.push(`${sub('U','R')} = U − ΔU = ${fmt(U,'V')} − ${fu(dU,'V')} = <b>${fu(Ur,'V')}</b>`);
-    s.push(`${sub('P','V')} = ${tri?'3':'2'} · ${sub('R','c')} · I² = ${tri?'3':'2'} · ${fu(Rc,'Ω')} · (${fu(I,'A')})² = <b>${fu(Pv,'W')}</b><span class="note">Puissance perdue en chaleur dans les conducteurs.</span>`);
-    s.push(`${sub('A','min')} = ${kTxt} · ρ · l · I${ccos} / ${sub('ΔU','adm')} = ${kTxt} · ${num(rho)} · ${num(l)} · ${fu(I,'A')}${vcos} / ${fu(dUadm,'V')} = <b>${num(Amin.toFixed(2))} mm²</b> → section normalisée : <b>${An?num(An)+' mm²':'> 240 mm²'}</b><span class="note">${sub('ΔU','adm')} = ${num(lim)} % de ${fmt(U,'V')} = ${fu(dUadm,'V')}. Ce calcul ne vérifie que la chute de tension : la section doit aussi respecter le courant admissible du câble et la protection (tableaux de la NIBT).</span>`);
-    $('#li-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':s.map(x=>`<li>${x}</li>`).join('');
+    s.push(step(`\\Delta U_{\\%}=\\dfrac{\\Delta U}{U}\\cdot 100=\\dfrac{${F(dU,'V')}}{${tv(U,'V')}}\\cdot 100=${rq(num(pct.toFixed(2))+'\u202f\\%')}`,okDrop?OK+' Sous la limite de '+num(lim)+' %.':'<span style="color:var(--bad);font-weight:600">✗ Au-dessus de la limite de '+num(lim)+' %.</span>'));
+    s.push(step(`U_R=U-\\Delta U=${tv(U,'V')}-${F(dU,'V')}=${FR(Ur,'V')}`,'Tension qui arrive au récepteur.'));
+    s.push(step(`P_V=${tri?3:2}\\cdot R_c\\cdot I^2=${tri?3:2}\\cdot ${F(Rc,'Ω')}\\cdot (${F(I,'A')})^2=${FR(Pv,'W')}`,'Puissance perdue en chaleur dans les conducteurs.'));
+    s.push(step([`\\Delta U_{\\text{adm}}=\\dfrac{${nt(lim)}}{100}\\cdot ${tv(U,'V')}=${F(dUadm,'V')}`,
+      `A_{\\min}=\\dfrac{${kt}\\cdot\\rho\\cdot l\\cdot I${tc}}{\\Delta U_{\\text{adm}}}=\\dfrac{${kt}\\cdot ${nt(rho)}\\cdot ${nt(l)}\\cdot ${nt(I)}${tvc}}{${nt(Number(dUadm.toPrecision(3)))}}=${rq(num(Amin.toFixed(2))+'\u202fmm²')}`,
+      `\\text{Section normalisée : }${rq(An?num(An)+'\u202fmm²':'plus de 240\u202fmm²')}`],
+      'Ce calcul ne vérifie que la chute de tension : la section doit aussi respecter le courant admissible du câble et la protection (tableaux de la NIBT).'));
+    $('#li-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':s.join('');
   }
   $('#li-type').addEventListener('click',e=>{const b=e.target.closest('[data-type]'); if(!b||b.dataset.type===type) return; type=b.dataset.type; $('#li-u').value=UDEF[type]; masked=$('#li-exo').checked; render();});
   $('#li-mat').addEventListener('change',()=>{$('#li-rho').value=num(MAT[+$('#li-mat').value][1]); render();});
@@ -1090,14 +1118,13 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       `<div class="stat"><div class="k">R<sub>B</sub> calculée</div><div class="v">${fmt(rbCalc,'Ω')}</div></div>`+
       `<div class="stat"><div class="k">R<sub>B</sub> en E12</div><div class="v">${fmt(rbE12,'Ω')}</div></div>`;
     $('#tr-steps').innerHTML=[
-      `${sub('I','C')} = (${sub('U','CC')} − ${sub('U','CEsat')}) / ${sub('R','C')} = (${fmt(p.ucc,'V')} − ${fmt(p.ucesat,'V')}) / ${fmt(p.rc,'Ω')} = <b>${fmt(p.icSat,'A')}</b><span class="note">Courant dans la charge quand le transistor est saturé.</span>`,
-      `${sub('I','Bmin')} = ${sub('I','C')} / B = ${fmt(p.icSat,'A')} / ${String(p.B).replace('.',',')} = <b>${fmt(ibmin,'A')}</b><span class="note">Le strict minimum pour atteindre la saturation.</span>`,
-      `${sub('I','B')} = ü · ${sub('I','Bmin')} = ${String(p.k).replace('.',',')} · ${fmt(ibmin,'A')} = <b>${fmt(ib,'A')}</b><span class="note">On prend une marge (ü = 2 à 5) car B varie d’un transistor à l’autre et avec la température.</span>`,
-      `${sub('R','B')} = (${sub('U','e')} − ${sub('U','BE')}) / ${sub('I','B')} = (${fmt(p.ue,'V')} − ${fmt(p.ube,'V')}) / ${fmt(ib,'A')} = <b>${fmt(rbCalc,'Ω')}</b>`,
-      `Valeur E12 inférieure : <b>${fmt(rbE12,'Ω')}</b>`,
-      `Avec ${sub('R','B')} = ${fmt(rb,'Ω')} : ${sub('I','B')} = ${fmt(ibReal,'A')}, ü réel = ${kReal.toFixed(1).replace('.',',')} ${kReal>=1?'<span class="ok">✓ saturé</span>':'<span style="color:var(--bad);font-weight:600">✗ pas saturé : diminue R<sub>B</sub></span>'}`,
-      `${sub('P','T')} = ${sub('U','CEsat')} · ${sub('I','C')} = ${fmt(p.ucesat*p.icSat,'W')}<span class="note">Puissance dissipée par le transistor saturé.</span>`
-    ].map(s=>`<li>${s}</li>`).join('');
+      step(`I_C=\\dfrac{U_{CC}-U_{CE\\,\\text{sat}}}{R_C}=\\dfrac{${tv(p.ucc,'V')}-${tv(p.ucesat,'V')}}{${tv(p.rc,'Ω')}}=${tr(p.icSat,'A')}`,'Courant dans la charge quand le transistor est saturé.'),
+      step(`I_{B\\,\\min}=\\dfrac{I_C}{B}=\\dfrac{${tv(p.icSat,'A')}}{${tn(p.B)}}=${tr(ibmin,'A')}`,'Le strict minimum pour atteindre la saturation.'),
+      step(`I_B=\\ddot{u}\\cdot I_{B\\,\\min}=${tn(p.k)}\\cdot ${tv(ibmin,'A')}=${tr(ib,'A')}`,'On prend une marge (ü = 2 à 5) car B varie d’un transistor à l’autre et avec la température.'),
+      step([`R_B=\\dfrac{U_e-U_{BE}}{I_B}=\\dfrac{${tv(p.ue,'V')}-${tv(p.ube,'V')}}{${tv(ib,'A')}}=${tr(rbCalc,'Ω')}`,`\\text{Valeur E12 inférieure : }${tr(rbE12,'Ω')}`]),
+      step([`I_B=\\dfrac{U_e-U_{BE}}{R_B}=\\dfrac{${tv(p.ue,'V')}-${tv(p.ube,'V')}}{${tv(rb,'Ω')}}=${tv(ibReal,'A')}`,`\\ddot{u}_{\\text{réel}}=\\dfrac{I_B}{I_{B\\,\\min}}=\\dfrac{${tv(ibReal,'A')}}{${tv(ibmin,'A')}}=${rq(String(Number(kReal.toFixed(1))).replace('.',','))}`],kReal>=1?OK+' Saturé avec R<sub>B</sub> = '+fmt(rb,'Ω')+'.':'<span style="color:var(--bad);font-weight:600">✗ Pas saturé : diminue R<sub>B</sub>.</span>'),
+      step(`P_T=U_{CE\\,\\text{sat}}\\cdot I_C=${tv(p.ucesat,'V')}\\cdot ${tv(p.icSat,'A')}=${tr(p.ucesat*p.icSat,'W')}`,'Puissance dissipée par le transistor saturé.')
+    ].join('');
     const sl=$('#tr-sim'); const oldMax=parseFloat(sl.max);
     sl.max=String(p.ue); sl.step=String(p.ue/400);
     if(lastUe===null||Math.abs(oldMax-p.ue)>1e-9) sl.value=String(p.ue);
@@ -1129,12 +1156,12 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     const rTxt={0.125:'1/8 W',0.25:'1/4 W',0.5:'1/2 W'}[rating]||fmt(rating,'W');
     $('#led-sum').innerHTML=`<div class="stat"><div class="k">R calculée</div><div class="v">${fmt(R,'Ω')}</div></div><div class="stat"><div class="k">R en E12</div><div class="v">${fmt(Rn,'Ω')}</div></div><div class="stat i"><div class="k">Courant réel</div><div class="v">${fmt(I,'A')}</div></div><div class="stat"><div class="k">Résistance à choisir</div><div class="v">${rTxt}</div></div>`;
     $('#led-steps').innerHTML=[
-      `${sub('U','R')} = U − ${sub('U','F')} = ${fmt(U,'V')} − ${fmt(UF,'V')} = <b>${fmt(U-UF,'V')}</b><span class="note">Tension que la résistance doit absorber.</span>`,
-      `R = ${sub('U','R')} / ${sub('I','F')} = ${fmt(U-UF,'V')} / ${fmt(IF,'A')} = <b>${fmt(R,'Ω')}</b>`,
-      `Valeur E12 supérieure : <b>${fmt(Rn,'Ω')}</b> → I = ${fmt(U-UF,'V')} / ${fmt(Rn,'Ω')} = <b>${fmt(I,'A')}</b>`,
-      `${sub('P','R')} = R · I² = ${fmt(Rn,'Ω')} · (${fmt(I,'A')})² = <b>${fmt(PR,'W')}</b><span class="note">Avec une marge ×2, on choisit une résistance de ${rTxt}.${U>=12?' Sous 24 V, la résistance chauffe plus que la LED : c’est normal.':''}</span>`,
-      `${sub('P','LED')} = ${sub('U','F')} · I = ${fmt(PL,'W')}`
-    ].map(s=>`<li>${s}</li>`).join('');
+      step(`U_R=U-U_F=${tv(U,'V')}-${tv(UF,'V')}=${tr(U-UF,'V')}`,'Tension que la résistance doit absorber.'),
+      step(`R=\\dfrac{U_R}{I_F}=\\dfrac{${tv(U-UF,'V')}}{${tv(IF,'A')}}=${tr(R,'Ω')}`),
+      step([`\\text{Valeur E12 supérieure : }${tr(Rn,'Ω')}`,`I=\\dfrac{U_R}{R}=\\dfrac{${tv(U-UF,'V')}}{${tv(Rn,'Ω')}}=${tr(I,'A')}`]),
+      step(`P_R=R\\cdot I^2=${tv(Rn,'Ω')}\\cdot (${tv(I,'A')})^2=${tr(PR,'W')}`,`Avec une marge ×2, on choisit une résistance de ${rTxt}.${U>=12?' Sous 24 V, la résistance chauffe plus que la LED : c’est normal.':''}`),
+      step(`P_{LED}=U_F\\cdot I=${tv(UF,'V')}\\cdot ${tv(I,'A')}=${tr(PL,'W')}`)
+    ].join('');
     // schéma
     const L=90,Rr=470,T=60,B=200,cy=130,lum=Math.min(1,I/IF);
     let s=`<defs><radialGradient id="ledg"><stop offset="0" stop-color="${col[2]}" stop-opacity=".9"/><stop offset="1" stop-color="${col[2]}" stop-opacity="0"/></radialGradient></defs>`;
