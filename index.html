@@ -287,11 +287,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <div class="tool-grid">
     <div class="panel">
       <h3 class="ph">Montage</h3>
-      <div class="seg" id="mx-topo" role="group" aria-label="Choix du montage">
-        <button class="btn" type="button" data-topo="A" aria-pressed="true">R1 + (R2 // R3)</button>
-        <button class="btn" type="button" data-topo="B" aria-pressed="false">(R1 + R2) // R3</button>
-        <button class="btn" type="button" data-topo="C" aria-pressed="false">(R1 // R2) + (R3 // R4)</button>
-      </div>
+      <div class="seg" id="mx-topo" role="group" aria-label="Choix du montage"></div>
       <p class="hint" id="mx-topo-hint"></p>
       <h3 class="ph">Données</h3>
       <div class="fields" id="mx-src"></div>
@@ -657,106 +653,187 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
    MIXTE
    ===================================================================== */
 (function(){
-  const st={topo:'A',masked:false,vals:['330','1k','1k5','2k2']};
-  const HINT={A:'R2 et R3 en parallèle, le tout en série avec R1. C’est aussi le diviseur de tension chargé : R3 joue le rôle de la charge.',
-    B:'R1 et R2 en série dans une branche, R3 seule dans l’autre branche.',
-    C:'Deux groupes parallèles branchés en série l’un après l’autre.'};
   const par=(a,b)=>a*b/(a+b);
+  const f=fmt;
+  const ok=' <span class="ok">✓</span>';
+  const term=(x,y)=>`<circle cx="${x}" cy="${y}" r="4" fill="var(--surface)" stroke="var(--wire)" stroke-width="2"/>`;
+  const TOPOS={
+    A:{label:'R1 + (R2 // R3)',U:'24',vals:['330','1k','1k5'],
+      hint:'R2 et R3 en parallèle, le tout en série avec R1. C’est aussi le diviseur de tension chargé : R3 joue le rôle de la charge.',
+      calc(U,R){
+        const s=[]; const R23=par(R[1],R[2]), Rt=R[0]+R23, I=U/Rt, U1=R[0]*I, U23=R23*I, I2=U23/R[1], I3=U23/R[2];
+        const rows=[{n:1,R:R[0],U:U1,I},{n:2,R:R[1],U:U23,I:I2},{n:3,R:R[2],U:U23,I:I3}];
+        s.push(`${sub('R',23)} = ${sub('R',2)} · ${sub('R',3)} / (${sub('R',2)} + ${sub('R',3)}) = ${f(R[1],'Ω')} · ${f(R[2],'Ω')} / (${f(R[1],'Ω')} + ${f(R[2],'Ω')}) = <b>${f(R23,'Ω')}</b><span class="note">R2 et R3 sont en parallèle : on les remplace par R23.</span>`);
+        s.push(`${sub('R','tot')} = ${sub('R',1)} + ${sub('R',23)} = ${f(R[0],'Ω')} + ${f(R23,'Ω')} = <b>${f(Rt,'Ω')}</b><span class="note">R1 et R23 sont en série.</span>`);
+        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b><span class="note">C’est aussi le courant dans R1.</span>`);
+        s.push(`${sub('U',1)} = ${sub('R',1)} · I = ${f(R[0],'Ω')} · ${f(I,'A')} = <b>${f(U1,'V')}</b>`);
+        s.push(`${sub('U',23)} = U − ${sub('U',1)} = ${f(U,'V')} − ${f(U1,'V')} = <b>${f(U23,'V')}</b><span class="note">Même tension sur R2 et R3, car elles sont en parallèle.</span>`);
+        s.push(`${sub('I',2)} = ${sub('U',23)} / ${sub('R',2)} = <b>${f(I2,'A')}</b> · ${sub('I',3)} = ${sub('U',23)} / ${sub('R',3)} = <b>${f(I3,'A')}</b>`);
+        s.push(`${sub('I',2)} + ${sub('I',3)} = ${f(I2+I3,'A')} = I`+ok);
+        return {Rt,I,rows,steps:s};
+      },
+      svg(U,R,r,V){
+        const L=90,T=60,B=210,cy=135,x2=330,x3=480; let s='';
+        s+=S.wire([[L,cy-6],[L,T],[x3,T],[x3,B],[L,B],[L,cy+6]])+S.wire([[x2,T],[x2,B]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
+        s+=S.dot(x2,T)+S.dot(x2,B);
+        s+=S.resH(210,T)+S.t(210,T-28,S.lab('R',1),'tn')+S.t(210,T-14,fmt(R[0],'Ω'))+S.t(210,T+30,S.lab('U',1,' = '+V(r.rows[0].U,'V')),'tv');
+        [[x2,1],[x3,2]].forEach(([x,i])=>{
+          s+=S.resV(x,cy)+S.t(x+14,cy-4,S.lab('R',i+1),'tn','start')+S.t(x+14,cy+11,fmt(R[i],'Ω'),'','start')+S.t(x+14,cy+40,S.lab('U',i+1,' = '+V(r.rows[i].U,'V')),'tv','start');
+          s+=S.arrow(x,T+24,'d')+S.t(x+12,T+28,S.lab('I',i+1,' = '+V(r.rows[i].I,'A')),'ti','start');
+        });
+        s+=S.arrow(140,T,'r')+S.t(130,T-12,'I = '+V(r.I,'A'),'ti');
+        return S.wrap(620,240,s,'Montage R1 en série avec R2 parallèle R3');
+      }},
+    B:{label:'(R1 + R2) // R3',U:'24',vals:['330','1k','1k5'],
+      hint:'R1 et R2 en série dans une branche, R3 seule dans l’autre branche.',
+      calc(U,R){
+        const s=[]; const R12=R[0]+R[1], Rt=par(R12,R[2]), I=U/Rt, I12=U/R12, I3=U/R[2];
+        const rows=[{n:1,R:R[0],U:R[0]*I12,I:I12},{n:2,R:R[1],U:R[1]*I12,I:I12},{n:3,R:R[2],U,I:I3}];
+        s.push(`${sub('R',12)} = ${sub('R',1)} + ${sub('R',2)} = ${f(R[0],'Ω')} + ${f(R[1],'Ω')} = <b>${f(R12,'Ω')}</b><span class="note">R1 et R2 sont en série dans la même branche.</span>`);
+        s.push(`${sub('R','tot')} = ${sub('R',12)} · ${sub('R',3)} / (${sub('R',12)} + ${sub('R',3)}) = <b>${f(Rt,'Ω')}</b><span class="note">La branche R12 est en parallèle avec R3.</span>`);
+        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
+        s.push(`${sub('I',12)} = U / ${sub('R',12)} = <b>${f(I12,'A')}</b> · ${sub('I',3)} = U / ${sub('R',3)} = <b>${f(I3,'A')}</b><span class="note">Chaque branche reçoit toute la tension U.</span>`);
+        s.push(`${sub('U',1)} = ${sub('R',1)} · ${sub('I',12)} = <b>${f(rows[0].U,'V')}</b> · ${sub('U',2)} = ${sub('R',2)} · ${sub('I',12)} = <b>${f(rows[1].U,'V')}</b>`);
+        s.push(`${sub('I',12)} + ${sub('I',3)} = ${f(I12+I3,'A')} = I`+ok+` · ${sub('U',1)} + ${sub('U',2)} = ${f(rows[0].U+rows[1].U,'V')} = U`+ok);
+        return {Rt,I,rows,steps:s};
+      },
+      svg(U,R,r,V){
+        const L=90,T=50,B=230,cy=140,x1=300,x3=470; let s='';
+        s+=S.wire([[L,cy-6],[L,T],[x3,T],[x3,B],[L,B],[L,cy+6]])+S.wire([[x1,T],[x1,B]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
+        s+=S.dot(x1,T)+S.dot(x1,B);
+        [[105,0],[175,1]].forEach(([y,i])=>{s+=S.resV(x1,y)+S.t(x1+14,y-8,S.lab('R',i+1),'tn','start')+S.t(x1+14,y+6,fmt(R[i],'Ω'),'','start')+S.t(x1+14,y+20,S.lab('U',i+1,' = '+V(r.rows[i].U,'V')),'tv','start');});
+        s+=S.arrow(x1,T+14,'d')+S.t(x1-10,T+18,S.lab('I',12,' = '+V(r.rows[0].I,'A')),'ti','end');
+        s+=S.resV(x3,cy)+S.t(x3+14,cy-8,S.lab('R',3),'tn','start')+S.t(x3+14,cy+6,fmt(R[2],'Ω'),'','start')+S.t(x3+14,cy+20,S.lab('U',3,' = '+V(r.rows[2].U,'V')),'tv','start');
+        s+=S.arrow(x3,T+30,'d')+S.t(x3+12,T+34,S.lab('I',3,' = '+V(r.rows[2].I,'A')),'ti','start');
+        s+=S.arrow(180,T,'r')+S.t(180,T-12,'I = '+V(r.I,'A'),'ti');
+        return S.wrap(620,250,s,'Montage R1 série R2, en parallèle avec R3');
+      }},
+    C:{label:'(R1 // R2) + (R3 // R4)',U:'24',vals:['330','1k','1k5','2k2'],
+      hint:'Deux groupes parallèles branchés en série l’un après l’autre.',
+      calc(U,R){
+        const s=[]; const R12=par(R[0],R[1]), R34=par(R[2],R[3]), Rt=R12+R34, I=U/Rt, U12=R12*I, U34=R34*I;
+        const rows=[{n:1,R:R[0],U:U12,I:U12/R[0]},{n:2,R:R[1],U:U12,I:U12/R[1]},{n:3,R:R[2],U:U34,I:U34/R[2]},{n:4,R:R[3],U:U34,I:U34/R[3]}];
+        s.push(`${sub('R',12)} = ${sub('R',1)} · ${sub('R',2)} / (${sub('R',1)} + ${sub('R',2)}) = <b>${f(R12,'Ω')}</b> · ${sub('R',34)} = ${sub('R',3)} · ${sub('R',4)} / (${sub('R',3)} + ${sub('R',4)}) = <b>${f(R34,'Ω')}</b>`);
+        s.push(`${sub('R','tot')} = ${sub('R',12)} + ${sub('R',34)} = <b>${f(Rt,'Ω')}</b><span class="note">Les deux groupes sont en série.</span>`);
+        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
+        s.push(`${sub('U',12)} = ${sub('R',12)} · I = <b>${f(U12,'V')}</b> · ${sub('U',34)} = ${sub('R',34)} · I = <b>${f(U34,'V')}</b>`);
+        s.push(rows.map(x=>`${sub('I',x.n)} = <b>${f(x.I,'A')}</b>`).join(' · ')+`<span class="note">I1 = U12 / R1, I2 = U12 / R2, I3 = U34 / R3, I4 = U34 / R4</span>`);
+        s.push(`${sub('U',12)} + ${sub('U',34)} = ${f(U12+U34,'V')} = U`+ok);
+        return {Rt,I,rows,steps:s};
+      },
+      svg(U,R,r,V){
+        const L=90,Y=90,B=240,cy=165,R0=560,blocks=[[160,280,0],[350,470,2]]; let s='';
+        s+=S.wire([[L,cy-6],[L,Y],[160,Y]])+S.wire([[280,Y],[350,Y]])+S.wire([[470,Y],[R0,Y],[R0,B],[L,B],[L,cy+6]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
+        blocks.forEach(([a,b,k])=>{
+          const cx=(a+b)/2;
+          s+=S.wire([[a,55],[a,125]])+S.wire([[b,55],[b,125]])+S.wire([[a,55],[b,55]])+S.wire([[a,125],[b,125]]);
+          s+=S.dot(a,Y)+S.dot(b,Y);
+          s+=S.resH(cx,55)+S.t(cx,41,S.lab('R',k+1,' · '+fmt(R[k],'Ω')),'tn')+S.t(cx,77,S.lab('I',k+1,' = '+V(r.rows[k].I,'A')),'ti');
+          s+=S.resH(cx,125)+S.t(cx,111,S.lab('R',k+2,' · '+fmt(R[k+1],'Ω')),'tn')+S.t(cx,147,S.lab('I',k+2,' = '+V(r.rows[k+1].I,'A')),'ti');
+          s+=S.t(cx,175,S.lab('U',k===0?'12':'34',' = '+V(r.rows[k].U,'V')),'tv');
+        });
+        s+=S.arrow(125,Y,'r')+S.t(125,Y-10,'I = '+V(r.I,'A'),'ti');
+        return S.wrap(620,260,s,'Montage R1 parallèle R2, en série avec R3 parallèle R4');
+      }},
+    D:{label:'Réseau A–B à 5 R',U:'12',vals:['1k','1k5','470','680','2k2'],ulabel:'Tension entre A et B · U<sub>AB</sub>',rt:'R<sub>AB</sub>',
+      hint:'R1 // R2, puis en série avec R3 et R4 ; toute cette branche est en parallèle avec R5. On cherche d’abord la résistance vue entre A et B.',
+      calc(U,R){
+        const s=[]; const R12=par(R[0],R[1]), Rh=R12+R[2]+R[3], Rt=par(Rh,R[4]), I=U/Rt, I5=U/R[4], Ih=U/Rh, U12=R12*Ih;
+        const rows=[{n:1,R:R[0],U:U12,I:U12/R[0]},{n:2,R:R[1],U:U12,I:U12/R[1]},{n:3,R:R[2],U:R[2]*Ih,I:Ih},{n:4,R:R[3],U:R[3]*Ih,I:Ih},{n:5,R:R[4],U,I:I5}];
+        s.push(`${sub('R',12)} = ${sub('R',1)} · ${sub('R',2)} / (${sub('R',1)} + ${sub('R',2)}) = ${f(R[0],'Ω')} · ${f(R[1],'Ω')} / (${f(R[0],'Ω')} + ${f(R[1],'Ω')}) = <b>${f(R12,'Ω')}</b><span class="note">R1 et R2 sont en parallèle.</span>`);
+        s.push(`${sub('R',1234)} = ${sub('R',12)} + ${sub('R',3)} + ${sub('R',4)} = ${f(R12,'Ω')} + ${f(R[2],'Ω')} + ${f(R[3],'Ω')} = <b>${f(Rh,'Ω')}</b><span class="note">R12, R3 et R4 sont en série dans la branche du haut.</span>`);
+        s.push(`${sub('R','AB')} = ${sub('R',1234)} · ${sub('R',5)} / (${sub('R',1234)} + ${sub('R',5)}) = ${f(Rh,'Ω')} · ${f(R[4],'Ω')} / (${f(Rh,'Ω')} + ${f(R[4],'Ω')}) = <b>${f(Rt,'Ω')}</b><span class="note">La branche du haut est en parallèle avec R5.</span>`);
+        s.push(`I = ${sub('U','AB')} / ${sub('R','AB')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
+        s.push(`${sub('I',5)} = ${sub('U','AB')} / ${sub('R',5)} = <b>${f(I5,'A')}</b> · ${sub('I',1234)} = ${sub('U','AB')} / ${sub('R',1234)} = <b>${f(Ih,'A')}</b><span class="note">Les deux branches reçoivent toute la tension U<sub>AB</sub>.</span>`);
+        s.push(`${sub('U',12)} = ${sub('R',12)} · ${sub('I',1234)} = <b>${f(U12,'V')}</b> · ${sub('U',3)} = ${sub('R',3)} · ${sub('I',1234)} = <b>${f(rows[2].U,'V')}</b> · ${sub('U',4)} = ${sub('R',4)} · ${sub('I',1234)} = <b>${f(rows[3].U,'V')}</b>`);
+        s.push(`${sub('I',1)} = ${sub('U',12)} / ${sub('R',1)} = <b>${f(rows[0].I,'A')}</b> · ${sub('I',2)} = ${sub('U',12)} / ${sub('R',2)} = <b>${f(rows[1].I,'A')}</b>`);
+        s.push(`${sub('U',12)} + ${sub('U',3)} + ${sub('U',4)} = ${f(U12+rows[2].U+rows[3].U,'V')} = ${sub('U','AB')}`+ok+` · ${sub('I',1234)} + ${sub('I',5)} = ${f(Ih+I5,'A')} = I`+ok);
+        return {Rt,I,rows,steps:s};
+      },
+      svg(U,R,r,V){
+        const y=70,yb=200,n1=100,n2=540,a=130,b=250; let s='';
+        s+=S.wire([[64,y],[576,y]])+S.wire([[a,y],[a,125],[b,125],[b,y]])+S.wire([[n1,y],[n1,yb],[n2,yb],[n2,y]]);
+        s+=term(60,y)+term(580,y)+S.t(48,y+5,'A','tn','end')+S.t(592,y+5,'B','tn','start');
+        [n1,a,b,n2].forEach(x=>{s+=S.dot(x,y);});
+        s+=S.resH(190,y)+S.t(190,y-14,S.lab('R',1,' · '+fmt(R[0],'Ω')),'tn')+S.t(190,y+22,S.lab('I',1,' = '+V(r.rows[0].I,'A')),'ti');
+        s+=S.resH(190,125)+S.t(190,111,S.lab('R',2,' · '+fmt(R[1],'Ω')),'tn')+S.t(190,147,S.lab('I',2,' = '+V(r.rows[1].I,'A')),'ti');
+        s+=S.t(190,172,S.lab('U',12,' = '+V(r.rows[0].U,'V')),'tv');
+        s+=S.resH(330,y)+S.t(330,y-14,S.lab('R',3,' · '+fmt(R[2],'Ω')),'tn')+S.t(330,y+22,S.lab('U',3,' = '+V(r.rows[2].U,'V')),'tv');
+        s+=S.resH(450,y)+S.t(450,y-14,S.lab('R',4,' · '+fmt(R[3],'Ω')),'tn')+S.t(450,y+22,S.lab('U',4,' = '+V(r.rows[3].U,'V')),'tv');
+        s+=S.arrow(512,y,'r')+S.t(450,y+44,S.lab('I',1234,' = '+V(r.rows[2].I,'A')),'ti');
+        s+=S.resH(320,yb)+S.t(320,yb-14,S.lab('R',5,' · '+fmt(R[4],'Ω')),'tn')+S.t(320,yb+22,S.lab('I',5,' = '+V(r.rows[4].I,'A')),'ti');
+        s+=S.arrow(200,yb,'r');
+        s+=S.arrow(82,y,'r')+S.t(82,y-14,'I = '+V(r.I,'A'),'ti');
+        s+=S.t(320,248,S.lab('U','AB',' = '+fmt(U,'V'))+'   ·   '+S.lab('R','AB',' = '+V(r.Rt,'Ω')),'tv');
+        return S.wrap(640,260,s,'Réseau de cinq résistances entre les bornes A et B');
+      }},
+    E:{label:'Réseau à 7 R (nœuds A à J)',U:'15',vals:['1k','2k2','3k3','10k','2k2','3k3','1k'],
+      hint:'Trois branches en parallèle sur la source : R1 ; R2 + R3 ; et (R4 // (R5 + R6)) + R7. On réduit la branche de droite en partant du fond (R5 + R6).',
+      calc(U,R){
+        const s=[]; const R56=R[4]+R[5], R456=par(R[3],R56), R4567=R456+R[6], R23=R[1]+R[2];
+        const Rt=1/(1/R[0]+1/R23+1/R4567), I=U/Rt, I1=U/R[0], I23=U/R23, I7=U/R4567, U7=R[6]*I7, UFI=U-U7, I4=UFI/R[3], I56=UFI/R56;
+        const rows=[{n:1,R:R[0],U,I:I1},{n:2,R:R[1],U:R[1]*I23,I:I23},{n:3,R:R[2],U:R[2]*I23,I:I23},{n:4,R:R[3],U:UFI,I:I4},{n:5,R:R[4],U:R[4]*I56,I:I56},{n:6,R:R[5],U:R[5]*I56,I:I56},{n:7,R:R[6],U:U7,I:I7}];
+        s.push(`${sub('R',56)} = ${sub('R',5)} + ${sub('R',6)} = ${f(R[4],'Ω')} + ${f(R[5],'Ω')} = <b>${f(R56,'Ω')}</b><span class="note">R5 et R6 sont en série (branche G–H–I).</span>`);
+        s.push(`${sub('R',456)} = ${sub('R',4)} · ${sub('R',56)} / (${sub('R',4)} + ${sub('R',56)}) = ${f(R[3],'Ω')} · ${f(R56,'Ω')} / (${f(R[3],'Ω')} + ${f(R56,'Ω')}) = <b>${f(R456,'Ω')}</b><span class="note">R4 et R56 sont en parallèle entre F et I.</span>`);
+        s.push(`${sub('R',4567)} = ${sub('R',456)} + ${sub('R',7)} = ${f(R456,'Ω')} + ${f(R[6],'Ω')} = <b>${f(R4567,'Ω')}</b><span class="note">R456 est en série avec R7 (entre I et J).</span>`);
+        s.push(`${sub('R',23)} = ${sub('R',2)} + ${sub('R',3)} = ${f(R[1],'Ω')} + ${f(R[2],'Ω')} = <b>${f(R23,'Ω')}</b><span class="note">R2 et R3 sont en série (branche C–D–E).</span>`);
+        s.push(`1 / ${sub('R','tot')} = 1/${sub('R',1)} + 1/${sub('R',23)} + 1/${sub('R',4567)}<br>${sub('R','tot')} = 1 / (1/${f(R[0],'Ω')} + 1/${f(R23,'Ω')} + 1/${f(R4567,'Ω')}) = <b>${f(Rt,'Ω')}</b><span class="note">Les trois branches sont en parallèle sur la source.</span>`);
+        s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
+        s.push(`${sub('I',1)} = U / ${sub('R',1)} = <b>${f(I1,'A')}</b> · ${sub('I',23)} = U / ${sub('R',23)} = <b>${f(I23,'A')}</b> · ${sub('I',7)} = U / ${sub('R',4567)} = <b>${f(I7,'A')}</b>`);
+        s.push(`${sub('U',2)} = ${sub('R',2)} · ${sub('I',23)} = <b>${f(rows[1].U,'V')}</b> · ${sub('U',3)} = ${sub('R',3)} · ${sub('I',23)} = <b>${f(rows[2].U,'V')}</b><span class="note">U3 est aussi la tension entre D et E.</span>`);
+        s.push(`${sub('U',7)} = ${sub('R',7)} · ${sub('I',7)} = <b>${f(U7,'V')}</b> · ${sub('U','FI')} = U − ${sub('U',7)} = ${f(U,'V')} − ${f(U7,'V')} = <b>${f(UFI,'V')}</b><span class="note">U<sub>FI</sub> est la tension sur R4 et sur la branche R5 + R6.</span>`);
+        s.push(`${sub('I',4)} = ${sub('U','FI')} / ${sub('R',4)} = <b>${f(I4,'A')}</b> · ${sub('I',56)} = ${sub('U','FI')} / ${sub('R',56)} = <b>${f(I56,'A')}</b>`);
+        s.push(`${sub('U',5)} = ${sub('R',5)} · ${sub('I',56)} = <b>${f(rows[4].U,'V')}</b> · ${sub('U',6)} = ${sub('R',6)} · ${sub('I',56)} = <b>${f(rows[5].U,'V')}</b>`);
+        s.push(`${sub('I',1)} + ${sub('I',23)} + ${sub('I',7)} = ${f(I1+I23+I7,'A')} = I`+ok+` · ${sub('I',4)} + ${sub('I',56)} = ${f(I4+I56,'A')} = ${sub('I',7)}`+ok);
+        return {Rt,I,rows,steps:s};
+      },
+      svg(U,R,r,V){
+        const T=50,Bt=310,xA=140,xC=260,xF=380,xG=500,xI=440,yI=230; let s='';
+        s+=S.wire([[64,T],[xG,T]])+S.wire([[64,Bt],[xI,Bt]]);
+        s+=S.wire([[xA,T],[xA,Bt]])+S.wire([[xC,T],[xC,Bt]])+S.wire([[xF,T],[xF,yI],[xG,yI],[xG,T]])+S.wire([[xI,yI],[xI,Bt]]);
+        s+=term(60,T)+term(60,Bt);
+        s+=`<line x1="74" y1="64" x2="74" y2="290" stroke="var(--volt)" stroke-width="1.5"/><polygon points="74,298 69,288 79,288" fill="var(--volt)"/>`+S.t(66,184,'U = '+fmt(U,'V'),'tv','end');
+        [[xA,T],[xC,T],[xF,T],[xG,T],[xA,Bt],[xC,Bt],[xI,Bt],[xC,180],[xG,140],[xI,yI]].forEach(([x,y])=>{s+=S.dot(x,y);});
+        [['A',xA,T-9],['C',xC,T-9],['F',xF,T-9],['G',xG,T-9],['B',xA,Bt+17],['E',xC,Bt+17],['J',xI,Bt+17]].forEach(([t,x,y])=>{s+=S.t(x+6,y,t,'tm','start');});
+        s+=S.t(xC-9,184,'D','tm','end')+S.t(xG-9,144,'H','tm','end')+S.t(xI-10,yI-6,'I','tm','end');
+        const lbl=(x,cy,i)=>S.resV(x,cy)+S.t(x+14,cy-4,S.lab('R',i+1),'tn','start')+S.t(x+14,cy+10,fmt(R[i],'Ω'),'','start')+S.t(x+14,cy+25,S.lab('U',i+1,' = '+V(r.rows[i].U,'V')),'tv','start');
+        s+=lbl(xA,180,0)+lbl(xC,115,1)+lbl(xC,245,2)+lbl(xF,140,3)+lbl(xG,95,4)+lbl(xG,185,5)+lbl(xI,270,6);
+        s+=S.arrow(100,T,'r')+S.t(100,T-10,'I = '+V(r.I,'A'),'ti');
+        s+=S.arrow(xA,76,'d')+S.t(xA+12,80,S.lab('I',1,' = '+V(r.rows[0].I,'A')),'ti','start');
+        s+=S.arrow(xC,76,'d')+S.t(xC+12,80,S.lab('I',23,' = '+V(r.rows[1].I,'A')),'ti','start');
+        s+=S.arrow(xF,84,'d')+S.t(xF+12,88,S.lab('I',4,' = '+V(r.rows[3].I,'A')),'ti','start');
+        s+=S.arrow(xG,220,'d')+S.t(xG+14,226,S.lab('I',56,' = '+V(r.rows[4].I,'A')),'ti','start');
+        s+=S.t(xI+14,252,S.lab('I',7,' = '+V(r.rows[6].I,'A')),'ti','start');
+        return S.wrap(640,335,s,'Réseau de sept résistances alimenté en 15 V, nœuds A à J');
+      }}
+  };
+  const ORDER=Object.keys(TOPOS);
+  const st={topo:'A',masked:false,data:{}};
+  ORDER.forEach(k=>{st.data[k]={U:TOPOS[k].U,vals:TOPOS[k].vals.slice()};});
+  $('#mx-topo').innerHTML=ORDER.map(k=>`<button class="btn" type="button" data-topo="${k}" aria-pressed="false">${TOPOS[k].label}</button>`).join('');
   $('#mx-src').innerHTML=fieldHTML('mx-u','Tension de la source U','V','24');
   function build(){
-    const n=st.topo==='C'?4:3;
-    $('#mx-list').innerHTML=st.vals.slice(0,n).map((v,i)=>fieldHTML(`mx-r${i}`,sub('R',i+1),'Ω',v)).join('');
+    const T=TOPOS[st.topo], d=st.data[st.topo];
+    $('#mx-u').value=d.U;
+    $('#mx-u').closest('.field').querySelector('.flabel').innerHTML=T.ulabel||'Tension de la source U';
+    $('#mx-list').innerHTML=d.vals.map((v,i)=>fieldHTML(`mx-r${i}`,sub('R',i+1),'Ω',v)).join('');
     $$('#mx-topo .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.topo===st.topo?'true':'false'));
-    $('#mx-topo-hint').textContent=HINT[st.topo];
+    $('#mx-topo-hint').textContent=T.hint;
   }
   $('#mx-topo').addEventListener('click',e=>{const b=e.target.closest('[data-topo]'); if(!b) return; st.topo=b.dataset.topo; st.masked=$('#mx-exo').checked; build(); render();});
-  $('#mx-list').addEventListener('input',e=>{const m=e.target.id.match(/-r(\d+)$/); if(m){st.vals[+m[1]]=e.target.value; render();}});
-  $('#mx-u').addEventListener('input',render);
+  $('#mx-list').addEventListener('input',e=>{const m=e.target.id.match(/-r(\d+)$/); if(m){st.data[st.topo].vals[+m[1]]=e.target.value; render();}});
+  $('#mx-u').addEventListener('input',e=>{st.data[st.topo].U=e.target.value; render();});
   $('#mx-exo').addEventListener('change',e=>{st.masked=e.target.checked;render();});
   $('#mx-show').addEventListener('click',()=>{st.masked=false;render();});
-  $('#mx-rand').addEventListener('click',()=>{st.vals=st.vals.map(()=>rStr(randR())); $('#mx-u').value=String(pick([5,9,12,24,48])); st.masked=$('#mx-exo').checked; build(); render();});
-
-  function calc(U,R){
-    const s=[]; let rows,Rt,I;
-    const f=fmt;
-    if(st.topo==='A'){
-      const R23=par(R[1],R[2]); Rt=R[0]+R23; I=U/Rt; const U1=R[0]*I, U23=R23*I, I2=U23/R[1], I3=U23/R[2];
-      rows=[{n:1,R:R[0],U:U1,I},{n:2,R:R[1],U:U23,I:I2},{n:3,R:R[2],U:U23,I:I3}];
-      s.push(`${sub('R',23)} = ${sub('R',2)} · ${sub('R',3)} / (${sub('R',2)} + ${sub('R',3)}) = ${f(R[1],'Ω')} · ${f(R[2],'Ω')} / (${f(R[1],'Ω')} + ${f(R[2],'Ω')}) = <b>${f(R23,'Ω')}</b><span class="note">R2 et R3 sont en parallèle : on les remplace par R23.</span>`);
-      s.push(`${sub('R','tot')} = ${sub('R',1)} + ${sub('R',23)} = ${f(R[0],'Ω')} + ${f(R23,'Ω')} = <b>${f(Rt,'Ω')}</b><span class="note">R1 et R23 sont en série.</span>`);
-      s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b><span class="note">C’est aussi le courant dans R1.</span>`);
-      s.push(`${sub('U',1)} = ${sub('R',1)} · I = ${f(R[0],'Ω')} · ${f(I,'A')} = <b>${f(U1,'V')}</b>`);
-      s.push(`${sub('U',23)} = U − ${sub('U',1)} = ${f(U,'V')} − ${f(U1,'V')} = <b>${f(U23,'V')}</b><span class="note">Même tension sur R2 et R3, car elles sont en parallèle.</span>`);
-      s.push(`${sub('I',2)} = ${sub('U',23)} / ${sub('R',2)} = <b>${f(I2,'A')}</b> · ${sub('I',3)} = ${sub('U',23)} / ${sub('R',3)} = <b>${f(I3,'A')}</b>`);
-      s.push(`${sub('I',2)} + ${sub('I',3)} = ${f(I2+I3,'A')} = I <span class="ok">✓</span>`);
-    } else if(st.topo==='B'){
-      const R12=R[0]+R[1]; Rt=par(R12,R[2]); I=U/Rt; const I12=U/R12, I3=U/R[2];
-      rows=[{n:1,R:R[0],U:R[0]*I12,I:I12},{n:2,R:R[1],U:R[1]*I12,I:I12},{n:3,R:R[2],U,I:I3}];
-      s.push(`${sub('R',12)} = ${sub('R',1)} + ${sub('R',2)} = ${f(R[0],'Ω')} + ${f(R[1],'Ω')} = <b>${f(R12,'Ω')}</b><span class="note">R1 et R2 sont en série dans la même branche.</span>`);
-      s.push(`${sub('R','tot')} = ${sub('R',12)} · ${sub('R',3)} / (${sub('R',12)} + ${sub('R',3)}) = <b>${f(Rt,'Ω')}</b><span class="note">La branche R12 est en parallèle avec R3.</span>`);
-      s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
-      s.push(`${sub('I',12)} = U / ${sub('R',12)} = <b>${f(I12,'A')}</b> · ${sub('I',3)} = U / ${sub('R',3)} = <b>${f(I3,'A')}</b><span class="note">Chaque branche reçoit toute la tension U.</span>`);
-      s.push(`${sub('U',1)} = ${sub('R',1)} · ${sub('I',12)} = <b>${f(rows[0].U,'V')}</b> · ${sub('U',2)} = ${sub('R',2)} · ${sub('I',12)} = <b>${f(rows[1].U,'V')}</b>`);
-      s.push(`${sub('I',12)} + ${sub('I',3)} = ${f(I12+I3,'A')} = I <span class="ok">✓</span> · ${sub('U',1)} + ${sub('U',2)} = ${f(rows[0].U+rows[1].U,'V')} = U <span class="ok">✓</span>`);
-    } else {
-      const R12=par(R[0],R[1]), R34=par(R[2],R[3]); Rt=R12+R34; I=U/Rt; const U12=R12*I, U34=R34*I;
-      rows=[{n:1,R:R[0],U:U12,I:U12/R[0]},{n:2,R:R[1],U:U12,I:U12/R[1]},{n:3,R:R[2],U:U34,I:U34/R[2]},{n:4,R:R[3],U:U34,I:U34/R[3]}];
-      s.push(`${sub('R',12)} = ${sub('R',1)} · ${sub('R',2)} / (${sub('R',1)} + ${sub('R',2)}) = <b>${f(R12,'Ω')}</b> · ${sub('R',34)} = ${sub('R',3)} · ${sub('R',4)} / (${sub('R',3)} + ${sub('R',4)}) = <b>${f(R34,'Ω')}</b>`);
-      s.push(`${sub('R','tot')} = ${sub('R',12)} + ${sub('R',34)} = <b>${f(Rt,'Ω')}</b><span class="note">Les deux groupes sont en série.</span>`);
-      s.push(`I = U / ${sub('R','tot')} = ${f(U,'V')} / ${f(Rt,'Ω')} = <b>${f(I,'A')}</b>`);
-      s.push(`${sub('U',12)} = ${sub('R',12)} · I = <b>${f(U12,'V')}</b> · ${sub('U',34)} = ${sub('R',34)} · I = <b>${f(U34,'V')}</b>`);
-      s.push(rows.map(r=>`${sub('I',r.n)} = <b>${f(r.I,'A')}</b>`).join(' · ')+`<span class="note">I1 = U12 / R1, I2 = U12 / R2, I3 = U34 / R3, I4 = U34 / R4</span>`);
-      s.push(`${sub('U',12)} + ${sub('U',34)} = ${f(U12+U34,'V')} = U <span class="ok">✓</span>`);
-    }
-    rows.forEach(r=>r.P=r.U*r.I);
-    return {Rt,I,P:U*I,rows,steps:s};
-  }
-  function svg(U,R,r,M){
-    const V=(x,u)=>M?'?':fmt(x,u); let s='';
-    if(st.topo==='A'){
-      const L=90,T=60,B=210,cy=135,x2=330,x3=480;
-      s+=S.wire([[L,cy-6],[L,T],[x3,T],[x3,B],[L,B],[L,cy+6]])+S.wire([[x2,T],[x2,B]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
-      s+=S.dot(x2,T)+S.dot(x2,B);
-      s+=S.resH(210,T)+S.t(210,T-28,S.lab('R',1),'tn')+S.t(210,T-14,fmt(R[0],'Ω'))+S.t(210,T+30,S.lab('U',1,' = '+V(r.rows[0].U,'V')),'tv');
-      [[x2,1],[x3,2]].forEach(([x,i])=>{
-        s+=S.resV(x,cy)+S.t(x+14,cy-4,S.lab('R',i+1),'tn','start')+S.t(x+14,cy+11,fmt(R[i],'Ω'),'','start')+S.t(x+14,cy+40,S.lab('U',i+1,' = '+V(r.rows[i].U,'V')),'tv','start');
-        s+=S.arrow(x,T+24,'d')+S.t(x+12,T+28,S.lab('I',i+1,' = '+V(r.rows[i].I,'A')),'ti','start');
-      });
-      s+=S.arrow(140,T,'r')+S.t(130,T-12,'I = '+V(r.I,'A'),'ti');
-      return S.wrap(620,240,s,'Montage R1 en série avec R2 parallèle R3');
-    }
-    if(st.topo==='B'){
-      const L=90,T=50,B=230,cy=140,x1=300,x3=470;
-      s+=S.wire([[L,cy-6],[L,T],[x3,T],[x3,B],[L,B],[L,cy+6]])+S.wire([[x1,T],[x1,B]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
-      s+=S.dot(x1,T)+S.dot(x1,B);
-      [[105,0],[175,1]].forEach(([y,i])=>{s+=S.resV(x1,y)+S.t(x1+14,y-8,S.lab('R',i+1),'tn','start')+S.t(x1+14,y+6,fmt(R[i],'Ω'),'','start')+S.t(x1+14,y+20,S.lab('U',i+1,' = '+V(r.rows[i].U,'V')),'tv','start');});
-      s+=S.arrow(x1,T+14,'d')+S.t(x1-10,T+18,S.lab('I',12,' = '+V(r.rows[0].I,'A')),'ti','end');
-      s+=S.resV(x3,cy)+S.t(x3+14,cy-8,S.lab('R',3),'tn','start')+S.t(x3+14,cy+6,fmt(R[2],'Ω'),'','start')+S.t(x3+14,cy+20,S.lab('U',3,' = '+V(r.rows[2].U,'V')),'tv','start');
-      s+=S.arrow(x3,T+30,'d')+S.t(x3+12,T+34,S.lab('I',3,' = '+V(r.rows[2].I,'A')),'ti','start');
-      s+=S.arrow(180,T,'r')+S.t(180,T-12,'I = '+V(r.I,'A'),'ti');
-      return S.wrap(620,250,s,'Montage R1 série R2, en parallèle avec R3');
-    }
-    const L=90,Y=90,B=240,cy=165,R0=560,blocks=[[160,280,0],[350,470,2]];
-    s+=S.wire([[L,cy-6],[L,Y],[160,Y]])+S.wire([[280,Y],[350,Y]])+S.wire([[470,Y],[R0,Y],[R0,B],[L,B],[L,cy+6]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
-    blocks.forEach(([a,b,k])=>{
-      const cx=(a+b)/2;
-      s+=S.wire([[a,55],[a,125]])+S.wire([[b,55],[b,125]])+S.wire([[a,55],[b,55]])+S.wire([[a,125],[b,125]]);
-      s+=S.dot(a,Y)+S.dot(b,Y);
-      s+=S.resH(cx,55)+S.t(cx,41,S.lab('R',k+1,' · '+fmt(R[k],'Ω')),'tn')+S.t(cx,77,S.lab('I',k+1,' = '+V(r.rows[k].I,'A')),'ti');
-      s+=S.resH(cx,125)+S.t(cx,111,S.lab('R',k+2,' · '+fmt(R[k+1],'Ω')),'tn')+S.t(cx,147,S.lab('I',k+2,' = '+V(r.rows[k+1].I,'A')),'ti');
-      s+=S.t(cx,175,S.lab('U',k===0?'12':'34',' = '+V(r.rows[k].U,'V')),'tv');
-    });
-    s+=S.arrow(125,Y,'r')+S.t(125,Y-10,'I = '+V(r.I,'A'),'ti');
-    return S.wrap(620,260,s,'Montage R1 parallèle R2, en série avec R3 parallèle R4');
-  }
+  $('#mx-rand').addEventListener('click',()=>{const d=st.data[st.topo]; d.vals=d.vals.map(()=>rStr(randR())); d.U=String(pick([5,9,12,15,24,48])); st.masked=$('#mx-exo').checked; build(); render();});
   function render(){
-    const n=st.topo==='C'?4:3; const U=readField('mx-u'); const R=[];
-    for(let i=0;i<n;i++) R.push(readField('mx-r'+i));
+    const T=TOPOS[st.topo], d=st.data[st.topo]; const U=readField('mx-u'); const R=d.vals.map((_,i)=>readField('mx-r'+i));
     const M=st.masked; $('#mx-reveal').hidden=!M;
     if(!(U>0)||R.some(x=>!(x>0))){ $('#mx-sum').innerHTML='<div class="stat"><div class="k">Données</div><div class="v q">à corriger</div></div>'; $('#mx-tbl').innerHTML=''; $('#mx-steps').innerHTML='<li><span class="note">Une valeur est vide ou illisible.</span></li>'; return; }
-    const r=calc(U,R); const q='<span class="q">?</span>'; const V=(x,u)=>M?q:fmt(x,u);
-    $('#mx-svg').innerHTML=svg(U,R,r,M);
-    $('#mx-sum').innerHTML=`<div class="stat"><div class="k">R<sub>tot</sub></div><div class="v">${V(r.Rt,'Ω')}</div></div><div class="stat i"><div class="k">Courant total I</div><div class="v">${V(r.I,'A')}</div></div><div class="stat"><div class="k">Puissance totale P</div><div class="v">${V(r.P,'W')}</div></div>`;
+    const r=T.calc(U,R); r.rows.forEach(x=>{x.P=x.U*x.I;}); r.P=U*r.I;
+    const q='<span class="q">?</span>'; const V=(x,u)=>M?q:fmt(x,u);
+    $('#mx-svg').innerHTML=T.svg(U,R,r,(x,u)=>M?'?':fmt(x,u));
+    $('#mx-sum').innerHTML=`<div class="stat"><div class="k">${T.rt||'R<sub>tot</sub>'}</div><div class="v">${V(r.Rt,'Ω')}</div></div><div class="stat i"><div class="k">Courant total I</div><div class="v">${V(r.I,'A')}</div></div><div class="stat"><div class="k">Puissance totale P</div><div class="v">${V(r.P,'W')}</div></div>`;
     $('#mx-tbl').innerHTML='<thead><tr><th>Résistance</th><th>Valeur</th><th>Tension U</th><th>Courant I</th><th>Puissance P</th></tr></thead><tbody>'+
       r.rows.map(x=>`<tr><td>${sub('R',x.n)}</td><td>${fmt(x.R,'Ω')}</td><td class="u">${V(x.U,'V')}</td><td class="i">${V(x.I,'A')}</td><td>${V(x.P,'W')}</td></tr>`).join('')+'</tbody>';
     $('#mx-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':r.steps.map(s=>`<li>${s}</li>`).join('');
