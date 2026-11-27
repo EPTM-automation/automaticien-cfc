@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Outils interactifs pour apprentis automaticiens CFC : loi d'Ohm, circuits série, parallèle et mixtes, transistor, LED et code couleurs.">
+<meta name="description" content="Outils interactifs pour apprentis automaticiens CFC : électrotechnique, commande électrique et NIBT.">
 <style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Établi électrique</title>
+<title>Électrotechnique</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,6 +51,14 @@ h1{font-weight:800;font-size:clamp(26px,4.2vw,38px);letter-spacing:-.015em}
 .tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 .tabs .wrap{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-block:6px}
 .tabs .wrap::-webkit-scrollbar{display:none}
+.tabs .sections{gap:22px;padding-block:0;border-bottom:1px solid var(--line)}
+.sec{flex:none;text-decoration:none;color:var(--muted);font-family:var(--f-display);font-weight:600;font-size:16px;padding:10px 0 8px;border-bottom:3px solid transparent;margin-bottom:-1px}
+.sec:hover{color:var(--ink)}
+.sec[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+.sec:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.soon{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:36px 24px;display:grid;gap:6px;justify-items:start}
+.soon h2{font-size:clamp(21px,2.6vw,26px)}
+.soon p{margin:0;color:var(--muted)}
 .tab{flex:none;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid transparent}
 .tab svg{width:26px;height:14px;flex:none}
 .tab svg *{stroke:currentColor;fill:none;stroke-width:1.6}
@@ -169,11 +177,17 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </style>
 
 <header class="masthead"><div class="wrap">
-  <div class="brand"><h1>Établi électrique</h1><span class="badge">Automaticien CFC</span></div>
-  <p class="sub">Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.</p>
+  <div class="brand"><h1 id="sec-title">Électrotechnique</h1><span class="badge">Automaticien CFC</span></div>
+  <p class="sub" id="sec-sub">Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.</p>
 </div></header>
 
-<nav class="tabs" aria-label="Outils"><div class="wrap">
+<nav class="tabs" aria-label="Sections et outils">
+<div class="wrap sections">
+  <a class="sec" href="#ohm" data-sec="electro">Électrotechnique</a>
+  <a class="sec" href="#commande" data-sec="commande">Commande électrique</a>
+  <a class="sec" href="#nibt" data-sec="nibt">NIBT</a>
+</div>
+<div class="wrap toolrow" data-sec-tools="electro">
   <a class="tab" href="#ohm"><svg viewBox="0 0 26 14"><path d="M13 2 L23 12 H3 Z"/><path d="M8 7 H18"/></svg>Loi d’Ohm</a>
   <a class="tab" href="#serie"><svg viewBox="0 0 26 14"><path d="M0 7H3M10 7H16M23 7H26"/><rect x="3" y="4" width="7" height="6"/><rect x="16" y="4" width="7" height="6"/></svg>Série</a>
   <a class="tab" href="#parallele"><svg viewBox="0 0 26 14"><path d="M0 7H5M5 2V12M21 2V12M21 7H26M5 2H9M17 2H21M5 12H9M17 12H21"/><rect x="9" y="0.5" width="8" height="3"/><rect x="9" y="10.5" width="8" height="3"/></svg>Parallèle</a>
@@ -373,9 +387,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </section>
 
+<!-- ============ COMMANDE ÉLECTRIQUE ============ -->
+<section class="tool" data-tool="commande" hidden>
+  <div class="soon">
+    <h2>Commande électrique</h2>
+    <p>Les outils de cette section sont en préparation.</p>
+  </div>
+</section>
+
+<!-- ============ NIBT ============ -->
+<section class="tool" data-tool="nibt" hidden>
+  <div class="soon">
+    <h2>NIBT</h2>
+    <p>Les outils de cette section sont en préparation.</p>
+  </div>
+</section>
+
 </main>
 
-<footer class="wrap foot">
+<footer class="wrap foot" id="foot-electro">
   <p>Modèles idéaux : fils sans résistance, source de tension parfaite. Transistor : modèle simplifié (U<sub>BE</sub> et gain B constants).</p>
   <p>Les résultats sont arrondis à 3 chiffres significatifs.</p>
 </footer>
@@ -456,11 +486,22 @@ const S={
 };
 
 /* ---------- navigation ---------- */
-const TOOLS=['ohm','serie','parallele','mixte','transistor','led','couleurs'];
+const SECTIONS={
+  electro:{title:'Électrotechnique',sub:'Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.',tools:['ohm','serie','parallele','mixte','transistor','led','couleurs']},
+  commande:{title:'Commande électrique',sub:'Section en préparation : les outils arrivent bientôt.',tools:['commande']},
+  nibt:{title:'NIBT',sub:'Norme sur les installations électriques à basse tension. Section en préparation : les outils arrivent bientôt.',tools:['nibt']}
+};
+const TOOLS=Object.values(SECTIONS).flatMap(x=>x.tools);
 function route(){
   let h=(location.hash||'').slice(1); if(!TOOLS.includes(h)) h='ohm';
+  const sec=Object.keys(SECTIONS).find(k=>SECTIONS[k].tools.includes(h)); const info=SECTIONS[sec];
   $$('.tool').forEach(s=>{s.hidden=s.dataset.tool!==h;});
   $$('.tab').forEach(a=>a.setAttribute('aria-current',a.getAttribute('href')==='#'+h?'page':'false'));
+  $$('.sec').forEach(a=>a.setAttribute('aria-current',a.dataset.sec===sec?'page':'false'));
+  $$('[data-sec-tools]').forEach(r=>{r.hidden=r.dataset.secTools!==sec;});
+  $('#sec-title').textContent=info.title; $('#sec-sub').textContent=info.sub;
+  $('#foot-electro').hidden=sec!=='electro';
+  document.title=info.title;
 }
 window.addEventListener('hashchange',route);
 

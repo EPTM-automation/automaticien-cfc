@@ -1,6 +1,10 @@
-# Établi électrique
+# Électrotechnique · Commande électrique · NIBT
 
-Outils interactifs pour apprentis automaticiens CFC : loi d'Ohm, circuits série, parallèle et mixtes, transistor NPN en commutation, résistance série d'une LED et code couleurs des résistances.
+Outils interactifs pour apprentis automaticiens CFC.
+
+- **Électrotechnique** : loi d'Ohm, circuits série, parallèle et mixtes, transistor NPN en commutation, résistance série d'une LED, code couleurs des résistances.
+- **Commande électrique** : en préparation.
+- **NIBT** : en préparation.
 
 Page en ligne : https://eptm-automation.github.io/etabli-electrique/
 
