@@ -205,6 +205,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <a class="tab" href="#ligne"><svg viewBox="0 0 26 14"><path d="M0 3H9M17 3H26M0 11H9M17 11H26"/><rect x="9" y="1" width="8" height="4"/><rect x="9" y="9" width="8" height="4"/></svg>Ligne</a>
   <a class="tab" href="#transistor"><svg viewBox="0 0 26 14"><circle cx="14" cy="7" r="6"/><path d="M2 7H11M11 3V11M11 5L17 1M11 9L17 13"/></svg>Transistor</a>
   <a class="tab" href="#led"><svg viewBox="0 0 26 14"><path d="M2 7H9M17 7H24M9 2V12L17 7Z M17 2V12"/></svg>LED</a>
+  <a class="tab" href="#diode"><svg viewBox="0 0 26 14"><path d="M2 7H9M17 7H24M9 2V12L17 7Z M15 1L17 2V12L19 13"/></svg>Diodes</a>
   <a class="tab" href="#couleurs"><svg viewBox="0 0 26 14"><path d="M0 7H4M22 7H26"/><rect x="4" y="2" width="18" height="10" rx="4"/><path d="M9 2V12M13 2V12M18 2V12"/></svg>Code couleurs</a>
 </div></nav>
 
@@ -365,13 +366,20 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="panel">
       <h3 class="ph">Données</h3>
       <div class="fields" id="tr-fields"></div>
-      <h3 class="ph">Résistance de base utilisée</h3>
-      <div class="fields" id="tr-rb-field"></div>
-      <div class="row"><button class="btn" id="tr-rb-reset" type="button">Reprendre la valeur E12</button></div>
-      <p class="hint">On choisit la valeur normalisée <strong>inférieure</strong> pour R<sub>B</sub> : le courant de base est un peu plus grand et la saturation reste garantie.</p>
+      <div id="tr-rb-wrap" class="fields">
+        <h3 class="ph">Résistance de base utilisée</h3>
+        <div class="fields" id="tr-rb-field"></div>
+        <div class="row"><button class="btn" id="tr-rb-reset" type="button">Reprendre la valeur E12</button></div>
+        <p class="hint">On choisit la valeur normalisée <strong>inférieure</strong> pour R<sub>B</sub> : le courant de base est un peu plus grand et la saturation reste garantie.</p>
+      </div>
+      <div class="exo">
+        <label class="check"><input type="checkbox" id="tr-exo"> Mode exercice (cacher les résultats)</label>
+        <div class="row"><button class="btn" id="tr-rand" type="button">Valeurs au hasard</button></div>
+      </div>
     </div>
     <div class="out">
       <figure class="schema" id="tr-svg"></figure>
+      <div class="reveal" id="tr-reveal" hidden><p>À toi : calcule I<sub>C</sub>, I<sub>B min</sub>, I<sub>B</sub> avec la sursaturation, puis R<sub>B</sub> et sa valeur E12.</p><button class="btn primary" id="tr-show" type="button">Afficher la solution</button></div>
       <div class="simbox">
         <div class="top"><strong>Simulation : fais varier U<sub>e</sub></strong><span class="pill" id="tr-state"></span></div>
         <input type="range" id="tr-sim" min="0" max="5" step="0.01" value="5" aria-label="Tension de commande Ue">
@@ -395,12 +403,62 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <h3 class="ph">Données</h3>
       <div class="fields" id="led-fields"></div>
       <p class="hint">On prend la valeur E12 <strong>supérieure</strong> : le courant reste un peu sous I<sub>F</sub>, la LED est protégée.</p>
+      <div class="exo">
+        <label class="check"><input type="checkbox" id="led-exo"> Mode exercice (cacher les résultats)</label>
+        <div class="row"><button class="btn" id="led-rand" type="button">Valeurs au hasard</button></div>
+      </div>
     </div>
     <div class="out">
       <figure class="schema" id="led-svg"></figure>
+      <div class="reveal" id="led-reveal" hidden><p>À toi : calcule R, choisis la valeur E12, puis le courant réel et la puissance de la résistance.</p><button class="btn primary" id="led-show" type="button">Afficher la solution</button></div>
       <p class="msg" id="led-msg"></p>
       <div class="summary" id="led-sum"></div>
       <details class="steps" open><summary>Étapes de calcul</summary><ol id="led-steps"></ol></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIODES ============ -->
+<section class="tool" data-tool="diode" hidden>
+  <div class="tool-head">
+    <h2>Diode à jonction et diode Zener</h2>
+    <p class="lead">Une diode laisse passer le courant dans un seul sens. La diode Zener conduit aussi en sens inverse dès que sa tension atteint U<sub>Z</sub> : elle sert à stabiliser ou à limiter une tension. Change la polarité ou passe en alternatif pour voir ce qui se passe.</p>
+  </div>
+  <div class="tool-grid">
+    <div class="panel">
+      <h3 class="ph">Diode</h3>
+      <div class="seg" id="di-type" role="group" aria-label="Type de diode">
+        <button class="btn" type="button" data-v="jonction" aria-pressed="true">Diode à jonction</button>
+        <button class="btn" type="button" data-v="zener" aria-pressed="false">Diode Zener</button>
+      </div>
+      <h3 class="ph">Polarité</h3>
+      <div class="seg" id="di-pol" role="group" aria-label="Polarité de la diode">
+        <button class="btn" type="button" data-v="1" aria-pressed="true">Sens direct</button>
+        <button class="btn" type="button" data-v="-1" aria-pressed="false">Sens inverse</button>
+      </div>
+      <h3 class="ph">Alimentation</h3>
+      <div class="seg" id="di-src" role="group" aria-label="Type d’alimentation">
+        <button class="btn" type="button" data-v="dc" aria-pressed="true">Continue (DC)</button>
+        <button class="btn" type="button" data-v="ac" aria-pressed="false">Alternative (AC)</button>
+      </div>
+      <h3 class="ph">Données</h3>
+      <div class="fields" id="di-fields"></div>
+      <div class="exo">
+        <label class="check"><input type="checkbox" id="di-exo"> Mode exercice (cacher les résultats)</label>
+        <div class="row"><button class="btn" id="di-rand" type="button">Valeurs au hasard</button></div>
+      </div>
+      <p class="hint">Modèle à seuil : la diode passante garde U<sub>F</sub> à ses bornes, la Zener en inverse garde U<sub>Z</sub>.</p>
+    </div>
+    <div class="out">
+      <figure class="schema" id="di-svg"></figure>
+      <div class="reveal" id="di-reveal" hidden><p>À toi : la diode conduit-elle ? Calcule le courant et les tensions sur R et sur la diode.</p><button class="btn primary" id="di-show" type="button">Afficher la solution</button></div>
+      <div class="simbox" id="di-box">
+        <div class="top"><strong id="di-box-title">État de la diode</strong><span class="pill" id="di-state"></span></div>
+        <p id="di-txt"></p>
+      </div>
+      <figure class="schema" id="di-chart"></figure>
+      <div class="summary" id="di-sum"></div>
+      <details class="steps" open><summary>Étapes de calcul</summary><ol id="di-steps"></ol></details>
     </div>
   </div>
 </section>
@@ -547,7 +605,7 @@ const S={
 
 /* ---------- navigation ---------- */
 const SECTIONS={
-  electro:{title:'Électrotechnique',sub:'Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.',tools:['ohm','serie','parallele','mixte','ligne','transistor','led','couleurs']},
+  electro:{title:'Électrotechnique',sub:'Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.',tools:['ohm','serie','parallele','mixte','ligne','transistor','led','diode','couleurs']},
   commande:{title:'Commande électrique',sub:'Section en préparation : les outils arrivent bientôt.',tools:['commande']},
   nibt:{title:'NIBT',sub:'Norme sur les installations électriques à basse tension. Section en préparation : les outils arrivent bientôt.',tools:['nibt']}
 };
@@ -1040,7 +1098,7 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     ['tr-k','ü · facteur de sursaturation','','3']];
   $('#tr-fields').innerHTML=F.map(f=>fieldHTML(f[0],f[1],f[2],f[3])).join('');
   $('#tr-rb-field').innerHTML=fieldHTML('tr-rb',sub('R','B')+' · montée sur la carte','Ω','');
-  let rbTouched=false, lastUe=null;
+  let rbTouched=false, lastUe=null, masked=false;
   const p={};
   function sim(ue){
     if(ue<=p.ube) return {ib:0,ic:0,uce:p.ucc,state:'off'};
@@ -1067,7 +1125,7 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     $('#tr-chart').innerHTML=S.wrap(W,H,s,'Courant de collecteur en fonction de la tension de commande');
   }
   function schema(ue,c){
-    const lum=p.icSat>0?c.ic/p.icSat:0;
+    const lum=masked?0:(p.icSat>0?c.ic/p.icSat:0), H=(x,u)=>masked?'?':fmt(x,u);
     let s='';
     s+=`<defs><radialGradient id="trg"><stop offset="0" stop-color="#ffc21a" stop-opacity=".95"/><stop offset="1" stop-color="#ffc21a" stop-opacity="0"/></radialGradient></defs>`;
     s+=`<line class="w" x1="300" y1="30" x2="360" y2="30"/>`+S.t(330,20,'+'+'U<tspan class="ssub" dy="4">CC</tspan><tspan dy="-4"> = '+fmt(p.ucc,'V')+'</tspan>','tn');
@@ -1075,23 +1133,23 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     s+=`<circle class="glow" cx="330" cy="85" r="34" fill="url(#trg)" opacity="${lum.toFixed(2)}"/>`;
     s+=`<circle cx="330" cy="85" r="16" class="res"/><line class="w" x1="318.7" y1="73.7" x2="341.3" y2="96.3"/><line class="w" x1="341.3" y1="73.7" x2="318.7" y2="96.3"/>`;
     s+=S.t(372,82,'Charge '+S.lab('R','C'),'tn','start')+S.t(372,97,fmt(p.rc,'Ω'),'','start');
-    s+=S.arrow(330,124,'d')+S.t(342,128,S.lab('I','C',' = '+fmt(c.ic,'A')),'ti','start');
+    s+=S.arrow(330,124,'d')+S.t(342,128,S.lab('I','C',' = '+H(c.ic,'A')),'ti','start');
     s+=`<circle cx="318" cy="175" r="30" fill="none" stroke="var(--wire)" stroke-width="1.5"/>`;
     s+=`<line x1="304" y1="155" x2="304" y2="195" stroke="var(--wire)" stroke-width="4"/>`;
     s+=S.wire([[304,165],[330,147]])+S.wire([[304,185],[330,203],[330,250]]);
     s+=`<polygon points="330,203 319.1,200.4 325.5,192.8" fill="var(--wire)"/>`;
     s+=`<line class="w" x1="312" y1="250" x2="348" y2="250"/><line class="w" x1="318" y1="257" x2="342" y2="257"/><line class="w" x1="324" y1="264" x2="336" y2="264"/>`;
-    s+=S.t(372,180,S.lab('U','CE',' = '+fmt(c.uce,'V')),'tv','start');
+    s+=S.t(372,180,S.lab('U','CE',' = '+H(c.uce,'V')),'tv','start');
     s+=S.wire([[94,175],[304,175]])+`<circle cx="90" cy="175" r="4" fill="var(--surface)" stroke="var(--wire)" stroke-width="2"/>`;
-    s+=S.resH(190,175)+S.t(190,155,S.lab('R','B',' = '+fmt(p.rb,'Ω')),'tn');
-    s+=S.arrow(250,175,'r')+S.t(250,198,S.lab('I','B',' = '+fmt(c.ib,'A')),'ti');
+    s+=S.resH(190,175)+S.t(190,155,S.lab('R','B',' = '+H(p.rb,'Ω')),'tn');
+    s+=S.arrow(250,175,'r')+S.t(250,198,S.lab('I','B',' = '+H(c.ib,'A')),'ti');
     s+=S.t(80,179,S.lab('U','e',' = '+fmt(ue,'V')),'tv','end');
     s+=S.t(372,212,'T1 · NPN','tm','start');
     $('#tr-svg').innerHTML=S.wrap(560,280,s,'Schéma du transistor NPN en commutation');
   }
   function simUpdate(){
     const ue=parseFloat($('#tr-sim').value); lastUe=ue; const c=sim(ue);
-    schema(ue,c); chart(ue);
+    schema(ue,c); if(masked) return; chart(ue);
     const pill=$('#tr-state'); const pt=c.uce*c.ic;
     const T={off:['off','Bloqué'],lin:['lin','Zone active'],sat:['sat','Saturé']}[c.state];
     pill.className='pill '+T[0]; pill.textContent=T[1];
@@ -1112,12 +1170,14 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     let rb=readField('tr-rb'); if(!(rb>0)) rb=rbE12;
     p.rb=rb;
     const ibReal=(p.ue-p.ube)/rb, kReal=ibReal/ibmin;
+    const M=masked, Q=(x,u)=>M?'<span class="q">?</span>':fmt(x,u);
+    $('#tr-reveal').hidden=!M; $('#tr-rb-wrap').hidden=M; $('#tr-sim').closest('.simbox').hidden=M; $('#tr-chart').hidden=M;
     $('#tr-sum').innerHTML=
-      `<div class="stat i"><div class="k">I<sub>C</sub> saturé</div><div class="v">${fmt(p.icSat,'A')}</div></div>`+
-      `<div class="stat i"><div class="k">I<sub>B</sub> minimal</div><div class="v">${fmt(ibmin,'A')}</div></div>`+
-      `<div class="stat"><div class="k">R<sub>B</sub> calculée</div><div class="v">${fmt(rbCalc,'Ω')}</div></div>`+
-      `<div class="stat"><div class="k">R<sub>B</sub> en E12</div><div class="v">${fmt(rbE12,'Ω')}</div></div>`;
-    $('#tr-steps').innerHTML=[
+      `<div class="stat i"><div class="k">I<sub>C</sub> saturé</div><div class="v">${Q(p.icSat,'A')}</div></div>`+
+      `<div class="stat i"><div class="k">I<sub>B</sub> minimal</div><div class="v">${Q(ibmin,'A')}</div></div>`+
+      `<div class="stat"><div class="k">R<sub>B</sub> calculée</div><div class="v">${Q(rbCalc,'Ω')}</div></div>`+
+      `<div class="stat"><div class="k">R<sub>B</sub> en E12</div><div class="v">${Q(rbE12,'Ω')}</div></div>`;
+    $('#tr-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':[
       step(`I_C=\\dfrac{U_{CC}-U_{CE\\,\\text{sat}}}{R_C}=\\dfrac{${tv(p.ucc,'V')}-${tv(p.ucesat,'V')}}{${tv(p.rc,'Ω')}}=${tr(p.icSat,'A')}`,'Courant dans la charge quand le transistor est saturé.'),
       step(`I_{B\\,\\min}=\\dfrac{I_C}{B}=\\dfrac{${tv(p.icSat,'A')}}{${tn(p.B)}}=${tr(ibmin,'A')}`,'Le strict minimum pour atteindre la saturation.'),
       step(`I_B=\\ddot{u}\\cdot I_{B\\,\\min}=${tn(p.k)}\\cdot ${tv(ibmin,'A')}=${tr(ib,'A')}`,'On prend une marge (ü = 2 à 5) car B varie d’un transistor à l’autre et avec la température.'),
@@ -1127,10 +1187,19 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     ].join('');
     const sl=$('#tr-sim'); const oldMax=parseFloat(sl.max);
     sl.max=String(p.ue); sl.step=String(p.ue/400);
-    if(lastUe===null||Math.abs(oldMax-p.ue)>1e-9) sl.value=String(p.ue);
+    if(M||lastUe===null||Math.abs(oldMax-p.ue)>1e-9) sl.value=String(p.ue);
     simUpdate();
   }
   $('#tr-fields').addEventListener('input',render);
+  $('#tr-exo').addEventListener('change',e=>{masked=e.target.checked;render();});
+  $('#tr-show').addEventListener('click',()=>{masked=false;render();});
+  $('#tr-rand').addEventListener('click',()=>{
+    const ucc=pick([12,24,24]); const ic=pick([0.02,0.03,0.05,0.08,0.1,0.15,0.2]);
+    $('#tr-ucc').value=String(ucc); $('#tr-rc').value=rStr(eSerie(ucc/ic,'near'));
+    $('#tr-ue').value=String(pick([5,5,10,12,24])); $('#tr-b').value=String(pick([50,80,100,150,200,250]));
+    $('#tr-k').value=String(pick([2,3,3,4,5])); $('#tr-ube').value='0,7'; $('#tr-ucesat').value='0,2';
+    rbTouched=false; masked=$('#tr-exo').checked; render();
+  });
   $('#tr-rb').addEventListener('input',()=>{rbTouched=true;render();});
   $('#tr-rb-reset').addEventListener('click',()=>{rbTouched=false;render();});
   $('#tr-sim').addEventListener('input',simUpdate);
@@ -1141,6 +1210,7 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
    LED
    ===================================================================== */
 (function(){
+  let masked=false;
   const COL=[['rouge',2.0,'#ff3b30'],['orange',2.1,'#ff8a00'],['jaune',2.1,'#ffd400'],['verte',2.2,'#2fd158'],['bleue',3.1,'#2f7bff'],['blanche',3.2,'#f2f6ff']];
   $('#led-fields').innerHTML=fieldHTML('led-u','Tension d’alimentation U','V','24')+
     `<label class="field" for="led-col"><span class="flabel">Couleur de la LED</span><span class="finput"><select id="led-col">${COL.map((c,i)=>`<option value="${i}">${c[0]} · ≈ ${String(c[1]).replace('.',',')} V</option>`).join('')}</select></span></label>`+
@@ -1154,8 +1224,10 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     const R=(U-UF)/IF, Rn=eSerie(R,'up'), I=(U-UF)/Rn, PR=Rn*I*I, PL=UF*I;
     const rating=[0.125,0.25,0.5,1,2,5,10].find(x=>x>=2*PR)||NaN;
     const rTxt={0.125:'1/8 W',0.25:'1/4 W',0.5:'1/2 W'}[rating]||fmt(rating,'W');
-    $('#led-sum').innerHTML=`<div class="stat"><div class="k">R calculée</div><div class="v">${fmt(R,'Ω')}</div></div><div class="stat"><div class="k">R en E12</div><div class="v">${fmt(Rn,'Ω')}</div></div><div class="stat i"><div class="k">Courant réel</div><div class="v">${fmt(I,'A')}</div></div><div class="stat"><div class="k">Résistance à choisir</div><div class="v">${rTxt}</div></div>`;
-    $('#led-steps').innerHTML=[
+    const M=masked, q='<span class="q">?</span>', Q=(x,u)=>M?q:fmt(x,u), H=(x,u)=>M?'?':fmt(x,u);
+    $('#led-reveal').hidden=!M;
+    $('#led-sum').innerHTML=`<div class="stat"><div class="k">R calculée</div><div class="v">${Q(R,'Ω')}</div></div><div class="stat"><div class="k">R en E12</div><div class="v">${Q(Rn,'Ω')}</div></div><div class="stat i"><div class="k">Courant réel</div><div class="v">${Q(I,'A')}</div></div><div class="stat"><div class="k">Résistance à choisir</div><div class="v">${M?q:rTxt}</div></div>`;
+    $('#led-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':[
       step(`U_R=U-U_F=${tv(U,'V')}-${tv(UF,'V')}=${tr(U-UF,'V')}`,'Tension que la résistance doit absorber.'),
       step(`R=\\dfrac{U_R}{I_F}=\\dfrac{${tv(U-UF,'V')}}{${tv(IF,'A')}}=${tr(R,'Ω')}`),
       step([`\\text{Valeur E12 supérieure : }${tr(Rn,'Ω')}`,`I=\\dfrac{U_R}{R}=\\dfrac{${tv(U-UF,'V')}}{${tv(Rn,'Ω')}}=${tr(I,'A')}`]),
@@ -1163,19 +1235,202 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
       step(`P_{LED}=U_F\\cdot I=${tv(UF,'V')}\\cdot ${tv(I,'A')}=${tr(PL,'W')}`)
     ].join('');
     // schéma
-    const L=90,Rr=470,T=60,B=200,cy=130,lum=Math.min(1,I/IF);
+    const L=90,Rr=470,T=60,B=200,cy=130,lum=M?0.6:Math.min(1,I/IF);
     let s=`<defs><radialGradient id="ledg"><stop offset="0" stop-color="${col[2]}" stop-opacity=".9"/><stop offset="1" stop-color="${col[2]}" stop-opacity="0"/></radialGradient></defs>`;
     s+=S.wire([[L,cy-6],[L,T],[Rr,T],[Rr,B],[L,B],[L,cy+6]])+S.battery(L,cy)+S.t(L-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
-    s+=S.resH(260,T)+S.t(260,T-28,'R = '+fmt(Rn,'Ω'),'tn')+S.t(260,T+30,S.lab('U','R',' = '+fmt(U-UF,'V')),'tv');
+    s+=S.resH(260,T)+S.t(260,T-28,'R = '+H(Rn,'Ω'),'tn')+S.t(260,T+30,S.lab('U','R',' = '+H(U-UF,'V')),'tv');
     s+=`<circle cx="${Rr}" cy="${cy}" r="40" fill="url(#ledg)" opacity="${lum.toFixed(2)}"/>`;
     s+=`<polygon points="${Rr-13},${cy-11} ${Rr+13},${cy-11} ${Rr},${cy+11}" fill="${col[2]}" stroke="var(--wire)" stroke-width="2"/><line class="w" x1="${Rr-13}" y1="${cy+11}" x2="${Rr+13}" y2="${cy+11}"/>`;
     s+=`<g stroke="var(--wire)" stroke-width="1.5" fill="none"><path d="M${Rr+16} ${cy-2} l11 -11 m-5 0 h5 v5"/><path d="M${Rr+16} ${cy+7} l11 -11 m-5 0 h5 v5"/></g>`;
     s+=S.t(Rr-20,cy-2,'LED '+col[0],'tn','end')+S.t(Rr-20,cy+14,S.lab('U','F',' = '+fmt(UF,'V')),'tv','end');
-    s+=S.arrow(Rr,T+30,'d')+S.t(Rr+12,T+34,'I = '+fmt(I,'A'),'ti','start');
+    s+=S.arrow(Rr,T+30,'d')+S.t(Rr+12,T+34,'I = '+H(I,'A'),'ti','start');
     $('#led-svg').innerHTML=S.wrap(560,230,s,'Schéma : source, résistance série et LED');
   }
   $('#led-col').addEventListener('change',()=>{$('#led-uf').value=String(COL[+$('#led-col').value][1]).replace('.',',');render();});
   $('#led-fields').addEventListener('input',e=>{if(e.target.id!=='led-col') render();});
+  $('#led-exo').addEventListener('change',e=>{masked=e.target.checked;render();});
+  $('#led-show').addEventListener('click',()=>{masked=false;render();});
+  $('#led-rand').addEventListener('click',()=>{
+    const ci=Math.floor(Math.random()*COL.length);
+    $('#led-u').value=String(pick([5,9,12,24])); $('#led-col').value=String(ci);
+    $('#led-uf').value=String(COL[ci][1]).replace('.',','); $('#led-if').value=pick(['10m','15m','20m']);
+    masked=$('#led-exo').checked; render();
+  });
+  render();
+})();
+
+/* =====================================================================
+   DIODES : JONCTION ET ZENER
+   ===================================================================== */
+(function(){
+  const st={type:'jonction',sig:1,src:'dc',masked:false};
+  $('#di-fields').innerHTML=
+    fieldHTML('di-u','Tension de la source U','V','12')+
+    fieldHTML('di-f','Fréquence f','Hz','50')+
+    fieldHTML('di-r','Résistance série R','Ω','1k')+
+    fieldHTML('di-uf',sub('U','F')+' · tension de seuil (sens direct)','V','0,7')+
+    fieldHTML('di-uz',sub('U','Z')+' · tension Zener','V','5,1')+
+    fieldHTML('di-rl',sub('R','L')+' · charge en parallèle sur la Zener (vide = sans charge)','Ω','');
+  const STATE={on:['sat','Passante'],off:['off','Bloquée'],z:['lin','Effet Zener']};
+  const nice=x=>{const e=Math.pow(10,Math.floor(Math.log10(x)));const m=x/e;return (m<=1?1:m<=2?2:m<=5?5:10)*e;};
+  function solve(u,P){
+    const v=P.sig*u, hasL=P.isZ&&P.RL>0, vth=hasL?v*P.RL/(P.R+P.RL):v;
+    let uak,state;
+    if(vth>P.UF){uak=P.UF;state='on';}
+    else if(P.isZ&&vth<-P.UZ){uak=-P.UZ;state='z';}
+    else {uak=vth;state='off';}
+    const iR=(v-uak)/P.R, iL=hasL?uak/P.RL:0, iD=iR-iL;
+    return {v,vth,uak,iR,iL,iD,state,uD:P.sig*uak,uR:P.sig*(v-uak)};
+  }
+  function glyph(x,cy,sig,isZ){
+    const tip=cy+10*sig, base=cy-10*sig;
+    let g=`<polygon points="${x-12},${base} ${x+12},${base} ${x},${tip}" fill="var(--surface)" stroke="var(--wire)" stroke-width="2"/>`;
+    g+=isZ?`<polyline class="w" points="${x-17},${tip-5*sig} ${x-12},${tip} ${x+12},${tip} ${x+17},${tip+5*sig}"/>`:`<line class="w" x1="${x-12}" y1="${tip}" x2="${x+12}" y2="${tip}"/>`;
+    g+=S.t(x-20,sig>0?base-2:base+12,'A','tm','end')+S.t(x-20,sig>0?tip+14:tip-4,'K','tm','end');
+    return g;
+  }
+  function svg(P,ac,U,r,M){
+    const L=90,xR=250,xD=420,xL=575,T=60,B=210,cy=135,V=(x,u)=>M?'?':fmt(x,u),g=ac?17:6,hasL=P.isZ&&P.RL>0,xEnd=hasL?xL:xD;
+    let s=S.wire([[L,cy-g],[L,T],[xEnd,T]])+S.wire([[L,cy+g],[L,B],[xEnd,B]])+S.wire([[xD,T],[xD,B]]);
+    if(hasL) s+=S.wire([[xL,T],[xL,B]])+S.dot(xD,T)+S.dot(xD,B)+S.resV(xL,cy)+S.t(xL+14,cy-4,S.lab('R','L'),'tn','start')+S.t(xL+14,cy+11,fmt(P.RL,'Ω'),'','start')+(ac?'':S.t(xL+14,cy+40,S.lab('I','L',' = '+V(Math.abs(r.iL),'A')),'ti','start'));
+    s+=ac?`<circle class="res" cx="${L}" cy="${cy}" r="17"/><path class="w" d="M${L-9} ${cy} q4.5 -8 9 0 t9 0"/>`:S.battery(L,cy);
+    s+=S.t(L-26,cy+4,ac?S.lab('U','eff',' = '+fmt(U,'V')):'U = '+fmt(U,'V'),'tv','end');
+    s+=S.resH(xR,T)+S.t(xR,T-14,'R = '+fmt(P.R,'Ω'),'tn')+S.t(xR,T+28,ac?S.lab('u','R',' (courbe)'):S.lab('U','R',' = '+V(Math.abs(r.uR),'V')),'tv');
+    s+=glyph(xD,cy,P.sig,P.isZ);
+    s+=S.t(xD+22,cy-4,P.isZ?'Z':'D','tn','start')+S.t(xD+22,cy+12,ac?S.lab('u','AK',' (courbe)'):S.lab('U','AK',' = '+V(r.uak,'V')),'tv','start');
+    if(!ac){const i=P.sig*r.iR; s+=S.arrow(150,T,i<-1e-12?'l':'r')+S.t(150,T-12,'I = '+V(Math.abs(i),'A'),'ti');}
+    else s+=S.arrow(150,T,'r')+S.t(150,T-12,'i(t)','ti');
+    return S.wrap(680,240,s,'Schéma : source, résistance série et diode');
+  }
+  function tchart(ts,series,Tp){
+    const W=660,H=270,ml=58,mr=16,mt=34,mb=34,tMax=ts[ts.length-1];
+    const yMax=Math.max(1e-9,...series.flatMap(x=>x.data.map(Math.abs)))*1.12;
+    const X=t=>ml+t/tMax*(W-ml-mr), Y=y=>mt+(H-mt-mb)/2-(y/yMax)*(H-mt-mb)/2;
+    let s='';
+    for(let k=0;k<=8;k++){const t=k*Tp/4; s+=`<line class="grid" x1="${X(t).toFixed(1)}" y1="${mt}" x2="${X(t).toFixed(1)}" y2="${H-mb}"/>`; if(k%2===0) s+=S.t(X(t),H-mb+16,fmt(t,'s'),'tm');}
+    const stp=nice(yMax/2.2);
+    for(let y=-Math.floor(yMax/stp)*stp;y<=yMax+1e-9;y+=stp){s+=`<line class="grid" x1="${ml}" y1="${Y(y).toFixed(1)}" x2="${W-mr}" y2="${Y(y).toFixed(1)}"/>`+S.t(ml-6,Y(y)+4,fmt(Math.abs(y)<1e-12?0:y,'V'),'tm','end');}
+    s+=`<line class="axis" x1="${ml}" y1="${Y(0)}" x2="${W-mr}" y2="${Y(0)}"/><line class="axis" x1="${ml}" y1="${mt}" x2="${ml}" y2="${H-mb}"/>`;
+    let lx=ml;
+    series.forEach(x=>{
+      s+=`<polyline fill="none" stroke="${x.color}" stroke-width="${x.dash?1.5:2.4}" ${x.dash?'stroke-dasharray="5 4"':''} stroke-linejoin="round" points="${x.data.map((y,i)=>X(ts[i]).toFixed(1)+','+Y(y).toFixed(1)).join(' ')}"/>`;
+      s+=`<line x1="${lx}" y1="14" x2="${lx+22}" y2="14" stroke="${x.color}" stroke-width="2.4" ${x.dash?'stroke-dasharray="5 4"':''}/>`+S.t(lx+28,18,x.label,'tm','start');
+      lx+=x.w;
+    });
+    s+=S.t(W-mr,H-4,'t','tm','end');
+    return S.wrap(W,H,s,'Courbes en fonction du temps');
+  }
+  function renderDC(U,P,M,Q){
+    const r=solve(U,P), hasL=P.isZ&&P.RL>0, fwd=r.v>0, S0=STATE[r.state];
+    $('#di-svg').innerHTML=svg(P,false,U,r,M);
+    $('#di-chart').innerHTML=''; $('#di-chart').hidden=true;
+    $('#di-box-title').textContent='État de la diode';
+    const pill=$('#di-state'); pill.className='pill '+S0[0]; pill.textContent=S0[1];
+    let txt;
+    if(r.state==='on') txt=`Sens direct et tension suffisante : la diode conduit. Sa tension reste à U<sub>F</sub> = ${fmt(P.UF,'V')}, le reste de la tension se retrouve sur R.`;
+    else if(r.state==='z') txt=`Sens inverse et tension supérieure à U<sub>Z</sub> : la Zener conduit en inverse. Sa tension reste fixée à U<sub>Z</sub> = ${fmt(P.UZ,'V')}${hasL?', la charge reçoit donc une tension stable':''}. C’est l’effet stabilisateur.`;
+    else if(fwd) txt=`Sens direct, mais la tension ${hasL?'sur la diode ':''}ne dépasse pas U<sub>F</sub> = ${fmt(P.UF,'V')} : la diode ne conduit pas encore.`;
+    else if(P.isZ) txt=`Sens inverse, mais la tension ${hasL?'sur la charge ':''}reste sous U<sub>Z</sub> = ${fmt(P.UZ,'V')} : la Zener bloque encore${hasL?', R et R<sub>L</sub> forment un simple diviseur de tension':''}.`;
+    else txt=`Sens inverse : la diode bloque. Le courant est nul et toute la tension de la source se retrouve sur la diode.`;
+    $('#di-txt').innerHTML=txt;
+    $('#di-sum').innerHTML=
+      `<div class="stat u"><div class="k">Tension diode U<sub>AK</sub></div><div class="v">${Q(r.uak,'V')}</div></div>`+
+      `<div class="stat i"><div class="k">Courant dans la diode</div><div class="v">${Q(Math.abs(r.iD),'A')}</div></div>`+
+      `<div class="stat u"><div class="k">Tension sur R</div><div class="v">${Q(Math.abs(r.uR),'V')}</div></div>`+
+      (hasL?`<div class="stat i"><div class="k">Courant dans R<sub>L</sub></div><div class="v">${Q(Math.abs(r.iL),'A')}</div></div>`:'')+
+      `<div class="stat"><div class="k">Puissance dans la diode</div><div class="v">${Q(Math.abs(r.uak*r.iD),'W')}</div></div>`;
+    if(M){$('#di-steps').innerHTML='<li><span class="note">Les étapes s’affichent avec la solution.</span></li>';return;}
+    const s=[];
+    if(r.state==='on'){
+      s.push(step(`U_{AK}=U_F=${tr(P.UF,'V')}`,'La diode est passante : sa tension reste égale à la tension de seuil.'));
+      s.push(step(`I${hasL?'_R':''}=\\dfrac{U-U_F}{R}=\\dfrac{${tv(U,'V')}-${tv(P.UF,'V')}}{${tv(P.R,'Ω')}}=${tr(r.iR,'A')}`));
+      if(hasL) s.push(step([`I_L=\\dfrac{U_F}{R_L}=\\dfrac{${tv(P.UF,'V')}}{${tv(P.RL,'Ω')}}=${tv(r.iL,'A')}`,`I_D=I_R-I_L=${tr(r.iD,'A')}`],'Une partie du courant passe par la charge.'));
+      s.push(step(`U_R=U-U_F=${tv(U,'V')}-${tv(P.UF,'V')}=${tr(U-P.UF,'V')}`));
+      s.push(step(`P_D=U_F\\cdot I_D=${tv(P.UF,'V')}\\cdot ${tv(r.iD,'A')}=${tr(P.UF*r.iD,'W')}`,'Puissance transformée en chaleur dans la diode.'));
+    } else if(r.state==='z'){
+      const IR=Math.abs(r.iR), IZ=Math.abs(r.iD);
+      s.push(step(`U_{AK}=-U_Z=${tr(-P.UZ,'V')}`,'En inverse, la Zener maintient sa tension à U<sub>Z</sub>.'));
+      s.push(step(`I${hasL?'_R':'_Z'}=\\dfrac{U-U_Z}{R}=\\dfrac{${tv(U,'V')}-${tv(P.UZ,'V')}}{${tv(P.R,'Ω')}}=${hasL?tv(IR,'A'):tr(IR,'A')}`));
+      if(hasL) s.push(step([`I_L=\\dfrac{U_Z}{R_L}=\\dfrac{${tv(P.UZ,'V')}}{${tv(P.RL,'Ω')}}=${tv(Math.abs(r.iL),'A')}`,`I_Z=I_R-I_L=${tr(IZ,'A')}`],'La résistance R absorbe la différence de tension, la Zener absorbe le courant que la charge ne prend pas.'));
+      s.push(step(`U_R=U-U_Z=${tv(U,'V')}-${tv(P.UZ,'V')}=${tr(U-P.UZ,'V')}`));
+      s.push(step(`P_Z=U_Z\\cdot I_Z=${tv(P.UZ,'V')}\\cdot ${tv(IZ,'A')}=${tr(P.UZ*IZ,'W')}`,'Puissance dissipée par la Zener : à comparer avec sa puissance maximale (fiche technique).'));
+    } else if(hasL){
+      s.push(step(`U_L=U\\cdot\\dfrac{R_L}{R+R_L}=${tv(U,'V')}\\cdot\\dfrac{${tv(P.RL,'Ω')}}{${tv(P.R,'Ω')}+${tv(P.RL,'Ω')}}=${tr(Math.abs(r.vth),'V')}`,`Cette tension est ${fwd?'plus petite que U<sub>F</sub>':'plus petite que U<sub>Z</sub>'} : la diode ne conduit pas, il reste un diviseur de tension.`));
+      s.push(step(`I=\\dfrac{U}{R+R_L}=\\dfrac{${tv(U,'V')}}{${tv(P.R+P.RL,'Ω')}}=${tr(U/(P.R+P.RL),'A')}`));
+    } else if(fwd){
+      s.push(step(`U=${tv(U,'V')}<U_F=${tv(P.UF,'V')}`,'La tension est trop faible : la diode ne conduit pas encore.'));
+      s.push(step([`I=${tr(0,'A')}`,`U_{AK}=U=${tr(U,'V')}`]));
+    } else if(P.isZ){
+      s.push(step(`U=${tv(U,'V')}<U_Z=${tv(P.UZ,'V')}`,'La tension n’atteint pas U<sub>Z</sub> : la Zener bloque.'));
+      s.push(step([`I=${tr(0,'A')}`,`U_{AK}=-U=${tr(-U,'V')}`]));
+    } else {
+      s.push(step([`I=${tr(0,'A')}`,`U_R=R\\cdot I=${tr(0,'V')}`,`U_{AK}=-U=${tr(-U,'V')}`],'Polarisée en inverse, la diode bloque. Toute la tension de la source est sur la diode : c’est la tension inverse qu’elle doit supporter.'));
+    }
+    $('#di-steps').innerHTML=s.join('');
+  }
+  function renderAC(U,f,P,M,Q){
+    const Uh=Math.SQRT2*U, Tp=1/f, N=480, hasL=P.isZ&&P.RL>0;
+    const ts=[],us=[],uds=[],urs=[]; let uakMin=Infinity,uakMax=-Infinity,maxI=0,sum=0;
+    for(let k=0;k<=N;k++){const t=2*Tp*k/N, u=Uh*Math.sin(2*Math.PI*f*t), r=solve(u,P); ts.push(t); us.push(u); uds.push(r.uD); urs.push(r.uR);
+      uakMin=Math.min(uakMin,r.uak); uakMax=Math.max(uakMax,r.uak); maxI=Math.max(maxI,Math.abs(r.uR)/P.R); if(k<N) sum+=r.uR;}
+    const avg=sum/N, maxUR=Math.max(...urs.map(Math.abs));
+    $('#di-svg').innerHTML=svg(P,true,U,{},M);
+    $('#di-chart').hidden=M;
+    if(!M) $('#di-chart').innerHTML=tchart(ts,[{label:'u (source)',data:us,color:'var(--muted)',dash:true,w:130},{label:'u_R (sur R)',data:urs,color:'var(--accent)',w:130},{label:hasL?'u_AK = u_L (diode et charge)':'u_AK (sur la diode)',data:uds,color:'var(--volt)',w:200}],Tp);
+    const Uth=hasL?Uh*P.RL/(P.R+P.RL):Uh, alt=P.sig>0?'positives':'négatives', alt2=P.sig>0?'négatives':'positives';
+    $('#di-box-title').textContent='Fonctionnement en alternatif';
+    const pill=$('#di-state');
+    if(!P.isZ){pill.className='pill sat'; pill.textContent='Redressement simple alternance';
+      $('#di-txt').innerHTML=Uh>P.UF?`La diode ne conduit que pendant les alternances ${alt} : le courant ne circule que dans un sens. La tension sur R est redressée en simple alternance, et la diode supporte ${fmt(Uh,'V')} en inverse pendant les autres alternances.`:`La crête (${fmt(Uh,'V')}) ne dépasse jamais U<sub>F</sub> : la diode ne conduit pas.`;}
+    else {pill.className='pill lin'; pill.textContent='Écrêtage';
+      $('#di-txt').innerHTML=(Uth>P.UZ?`Pendant les alternances ${alt2}, la Zener est en inverse et limite sa tension à U<sub>Z</sub> = ${fmt(P.UZ,'V')}. `:`Pendant les alternances ${alt2}, la crête n’atteint pas U<sub>Z</sub> : la Zener bloque. `)+(Uth>P.UF?`Pendant les alternances ${alt}, elle conduit comme une diode normale (U<sub>AK</sub> ≈ ${fmt(P.UF,'V')}).`:'');}
+    $('#di-sum').innerHTML=
+      `<div class="stat u"><div class="k">Crête de la source Û</div><div class="v">${Q(Uh,'V')}</div></div>`+
+      `<div class="stat u"><div class="k">Crête sur R</div><div class="v">${Q(maxUR,'V')}</div></div>`+
+      `<div class="stat u"><div class="k">Valeur moyenne sur R</div><div class="v">${Q(avg,'V')}</div></div>`+
+      `<div class="stat i"><div class="k">Courant de crête</div><div class="v">${Q(maxI,'A')}</div></div>`+
+      `<div class="stat"><div class="k">U<sub>AK</sub> min … max</div><div class="v" style="font-size:16px;white-space:normal">${M?'<span class="q">?</span>':fmt(uakMin,'V')+' … '+fmt(uakMax,'V')}</div></div>`;
+    if(M){$('#di-steps').innerHTML='<li><span class="note">Les étapes s’affichent avec la solution.</span></li>';return;}
+    const s=[];
+    s.push(step(`\\hat{U}=\\sqrt{2}\\cdot U_{\\text{eff}}=\\sqrt{2}\\cdot ${tv(U,'V')}=${tr(Uh,'V')}`,'Valeur de crête de la tension sinusoïdale.'));
+    s.push(step(`T=\\dfrac{1}{f}=\\dfrac{1}{${tv(f,'Hz')}}=${tr(Tp,'s')}`,'Durée d’une période : le graphique en montre deux.'));
+    if(!P.isZ){
+      if(Uh>P.UF){
+        s.push(step([`\\hat{U}_R=\\hat{U}-U_F=${tv(Uh,'V')}-${tv(P.UF,'V')}=${tr(Uh-P.UF,'V')}`,`\\hat{I}=\\dfrac{\\hat{U}_R}{R}=\\dfrac{${tv(Uh-P.UF,'V')}}{${tv(P.R,'Ω')}}=${tr((Uh-P.UF)/P.R,'A')}`],`Pendant les alternances ${alt}, la diode conduit.`));
+        s.push(step(`\\overline{U}_R\\approx\\dfrac{\\hat{U}_R}{\\pi}=\\dfrac{${tv(Uh-P.UF,'V')}}{\\pi}=${tr((Uh-P.UF)/Math.PI,'V')}`,`Valeur moyenne approchée d’un redressement simple alternance. La simulation donne ${fmt(Math.abs(avg),'V')}${P.sig<0?' (négative ici, car la diode est inversée)':''}.`));
+        s.push(step(`U_{\\text{inv max}}=\\hat{U}=${tr(Uh,'V')}`,'Tension inverse maximale que la diode doit supporter pendant les autres alternances.'));
+      } else s.push(step(`\\hat{U}=${tv(Uh,'V')}<U_F=${tv(P.UF,'V')}`,'La diode ne conduit jamais.'));
+    } else {
+      if(hasL) s.push(step(`\\hat{U}_{L0}=\\hat{U}\\cdot\\dfrac{R_L}{R+R_L}=${tv(Uh,'V')}\\cdot\\dfrac{${tv(P.RL,'Ω')}}{${tv(P.R,'Ω')}+${tv(P.RL,'Ω')}}=${tr(Uth,'V')}`,'Crête qu’aurait la charge sans la Zener : on la compare à U<sub>Z</sub>.'));
+      if(Uth>P.UZ) s.push(step([`U_{AK}=-U_Z=${tr(-P.UZ,'V')}`,`\\hat{I}_R=\\dfrac{\\hat{U}-U_Z}{R}=\\dfrac{${tv(Uh,'V')}-${tv(P.UZ,'V')}}{${tv(P.R,'Ω')}}=${tr((Uh-P.UZ)/P.R,'A')}`],`Alternances ${alt2} : la Zener est en inverse, sa tension est limitée à U<sub>Z</sub> (écrêtage).`));
+      else s.push(step(`${hasL?'\\hat{U}_{L0}':'\\hat{U}'}=${tv(Uth,'V')}<U_Z=${tv(P.UZ,'V')}`,`Alternances ${alt2} : la Zener ne conduit pas en inverse.`));
+      if(Uth>P.UF) s.push(step([`U_{AK}=U_F=${tr(P.UF,'V')}`,`\\hat{I}_R=\\dfrac{\\hat{U}-U_F}{R}=\\dfrac{${tv(Uh,'V')}-${tv(P.UF,'V')}}{${tv(P.R,'Ω')}}=${tr((Uh-P.UF)/P.R,'A')}`],`Alternances ${alt} : la Zener conduit comme une diode normale.`));
+    }
+    $('#di-steps').innerHTML=s.join('');
+  }
+  function render(){
+    const isZ=st.type==='zener', ac=st.src==='ac';
+    [['di-type','type'],['di-pol','sig'],['di-src','src']].forEach(([id,k])=>$$('#'+id+' .btn').forEach(b=>b.setAttribute('aria-pressed',String((k==='sig'?+b.dataset.v:b.dataset.v)===st[k]))));
+    $('#di-f').closest('.field').hidden=!ac; $('#di-uz').closest('.field').hidden=!isZ; $('#di-rl').closest('.field').hidden=!isZ;
+    $('#di-u').closest('.field').querySelector('.flabel').innerHTML=ac?'Tension efficace de la source U<sub>eff</sub>':'Tension de la source U';
+    const U=readField('di-u'), R=readField('di-r'), UF=readField('di-uf'), f=ac?readField('di-f'):50, UZ=isZ?readField('di-uz'):Infinity, RLr=isZ?readField('di-rl',true):null;
+    const M=st.masked; $('#di-reveal').hidden=!M; $('#di-box').hidden=M;
+    if(![U,R,UF,f].every(x=>x>0)||!(UZ>0)||(RLr!==null&&!(RLr>0))){$('#di-steps').innerHTML='<li><span class="note">Une valeur est vide ou illisible.</span></li>';return;}
+    const P={R,UF,UZ,RL:RLr||0,isZ,sig:st.sig};
+    const Q=(x,u)=>M?'<span class="q">?</span>':fmt(x,u);
+    if(ac) renderAC(U,f,P,M,Q); else renderDC(U,P,M,Q);
+  }
+  function seg(id,key,after){$('#'+id).addEventListener('click',e=>{const b=e.target.closest('[data-v]'); if(!b) return; const val=key==='sig'?+b.dataset.v:b.dataset.v; if(st[key]===val) return; st[key]=val; if(after) after(); st.masked=$('#di-exo').checked; render();});}
+  seg('di-type','type',()=>{st.sig=st.type==='zener'?-1:1;});
+  seg('di-pol','sig'); seg('di-src','src');
+  $('#di-fields').addEventListener('input',render);
+  $('#di-exo').addEventListener('change',e=>{st.masked=e.target.checked;render();});
+  $('#di-show').addEventListener('click',()=>{st.masked=false;render();});
+  $('#di-rand').addEventListener('click',()=>{
+    $('#di-u').value=String(pick([5,9,12,15,24])); $('#di-r').value=rStr(pick([220,330,470,680,1000,1500,2200,3300,4700]));
+    if(st.type==='zener'){ $('#di-uz').value=String(pick([3.3,4.7,5.1,6.8,9.1,12])).replace('.',','); if($('#di-rl').value.trim()!=='') $('#di-rl').value=rStr(pick([1000,2200,4700,10000])); }
+    st.masked=$('#di-exo').checked; render();
+  });
   render();
 })();
 
