@@ -6,6 +6,6 @@ Outils interactifs pour apprentis automaticiens CFC.
 - **Commande électrique** : en préparation.
 - **NIBT** : en préparation.
 
-Page en ligne : https://eptm-automation.github.io/etabli-electrique/
+Page en ligne : https://eptm-automation.github.io/automaticien-cfc/
 
 Un seul fichier `index.html`, sans dépendance à installer.
