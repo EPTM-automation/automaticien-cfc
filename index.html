@@ -160,6 +160,12 @@ td.u{color:var(--volt)} td.i{color:var(--amp)}
 .pill.off{color:var(--off);background:color-mix(in srgb,var(--off) 15%,transparent)}
 .pill.lin{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
 .pill.sat{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}
+.pill.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,transparent)}
+.meter{position:relative;height:14px;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.meter i{position:absolute;top:0;bottom:0;left:0;background:var(--ok);border-radius:7px}
+.meter.over i{background:var(--bad)}
+.meter b{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--ink)}
+.meter-scale{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-top:-4px}
 .simbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
 .simbox .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .simbox p{margin:0;color:var(--muted);font-size:14px}
@@ -192,6 +198,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <a class="tab" href="#serie"><svg viewBox="0 0 26 14"><path d="M0 7H3M10 7H16M23 7H26"/><rect x="3" y="4" width="7" height="6"/><rect x="16" y="4" width="7" height="6"/></svg>Série</a>
   <a class="tab" href="#parallele"><svg viewBox="0 0 26 14"><path d="M0 7H5M5 2V12M21 2V12M21 7H26M5 2H9M17 2H21M5 12H9M17 12H21"/><rect x="9" y="0.5" width="8" height="3"/><rect x="9" y="10.5" width="8" height="3"/></svg>Parallèle</a>
   <a class="tab" href="#mixte"><svg viewBox="0 0 26 14"><path d="M0 7H2M9 7H13M13 2V12M13 2H15M22 2H24M24 2V12M13 12H15M22 12H24M24 7H26"/><rect x="2" y="4.5" width="7" height="5"/><rect x="15" y="0.5" width="7" height="3"/><rect x="15" y="10.5" width="7" height="3"/></svg>Mixte</a>
+  <a class="tab" href="#ligne"><svg viewBox="0 0 26 14"><path d="M0 3H9M17 3H26M0 11H9M17 11H26"/><rect x="9" y="1" width="8" height="4"/><rect x="9" y="9" width="8" height="4"/></svg>Ligne</a>
   <a class="tab" href="#transistor"><svg viewBox="0 0 26 14"><circle cx="14" cy="7" r="6"/><path d="M2 7H11M11 3V11M11 5L17 1M11 9L17 13"/></svg>Transistor</a>
   <a class="tab" href="#led"><svg viewBox="0 0 26 14"><path d="M2 7H9M17 7H24M9 2V12L17 7Z M17 2V12"/></svg>LED</a>
   <a class="tab" href="#couleurs"><svg viewBox="0 0 26 14"><path d="M0 7H4M22 7H26"/><rect x="4" y="2" width="18" height="10" rx="4"/><path d="M9 2V12M13 2V12M18 2V12"/></svg>Code couleurs</a>
@@ -303,6 +310,38 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="summary" id="mx-sum"></div>
       <div class="tbl-wrap"><table id="mx-tbl"></table></div>
       <details class="steps" open><summary>Étapes de calcul</summary><ol id="mx-steps"></ol></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIGNE ============ -->
+<section class="tool" data-tool="ligne" hidden>
+  <div class="tool-head">
+    <h2>Résistance de ligne et chute de tension</h2>
+    <p class="lead">Les conducteurs d’une ligne ont une résistance. Plus la ligne est longue et fine, plus la tension perdue en route est grande : le récepteur reçoit moins que la tension du réseau.</p>
+  </div>
+  <div class="tool-grid">
+    <div class="panel">
+      <h3 class="ph">Réseau</h3>
+      <div class="seg" id="li-type" role="group" aria-label="Type de réseau">
+        <button class="btn" type="button" data-type="dc" aria-pressed="false">Courant continu</button>
+        <button class="btn" type="button" data-type="mono" aria-pressed="true">Monophasé</button>
+        <button class="btn" type="button" data-type="tri" aria-pressed="false">Triphasé</button>
+      </div>
+      <h3 class="ph">Données</h3>
+      <div class="fields" id="li-fields"></div>
+      <p class="hint">La longueur l est la longueur <strong>simple</strong> de la ligne (distance entre le tableau et le récepteur), pas la longueur totale de fil.</p>
+    </div>
+    <div class="out">
+      <figure class="schema" id="li-svg"></figure>
+      <div class="simbox">
+        <div class="top"><strong>Chute de tension ΔU</strong><span class="pill" id="li-state"></span></div>
+        <div class="meter" id="li-meter"><i></i><b></b></div>
+        <div class="meter-scale" id="li-scale"></div>
+        <p id="li-txt"></p>
+      </div>
+      <div class="summary" id="li-sum"></div>
+      <details class="steps" open><summary>Étapes de calcul</summary><ol id="li-steps"></ol></details>
     </div>
   </div>
 </section>
@@ -483,7 +522,7 @@ const S={
 
 /* ---------- navigation ---------- */
 const SECTIONS={
-  electro:{title:'Électrotechnique',sub:'Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.',tools:['ohm','serie','parallele','mixte','transistor','led','couleurs']},
+  electro:{title:'Électrotechnique',sub:'Des outils pour calculer, vérifier et comprendre les circuits de base. Change une valeur : le schéma, les résultats et les étapes de calcul se mettent à jour tout de suite.',tools:['ohm','serie','parallele','mixte','ligne','transistor','led','couleurs']},
   commande:{title:'Commande électrique',sub:'Section en préparation : les outils arrivent bientôt.',tools:['commande']},
   nibt:{title:'NIBT',sub:'Norme sur les installations électriques à basse tension. Section en préparation : les outils arrivent bientôt.',tools:['nibt']}
 };
@@ -839,6 +878,108 @@ netTool({p:'pa',kind:'parallele',max:5,U:'12',vals:['220','470','1k'],
     $('#mx-steps').innerHTML=M?'<li><span class="note">Les étapes s’affichent avec la solution.</span></li>':r.steps.map(s=>`<li>${s}</li>`).join('');
   }
   build(); render();
+})();
+
+/* =====================================================================
+   LIGNE : RÉSISTANCE ET CHUTE DE TENSION
+   ===================================================================== */
+(function(){
+  const MAT=[['Cuivre',0.0175],['Aluminium',0.0286]];
+  const SECT=[0.5,0.75,1,1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240];
+  const UDEF={dc:'24',mono:'230',tri:'400'};
+  const num=x=>String(Number(Number(x).toPrecision(4))).replace('.',',');
+  const fu=(x,u)=>(x!==0&&Math.abs(x)<1)?String(Number(x.toPrecision(3))).replace('.',',')+' '+u:fmt(x,u);
+  const selHTML=(id,label,opts)=>`<label class="field" for="${id}"><span class="flabel">${label}</span><span class="finput"><select id="${id}">${opts}</select></span></label>`;
+  let type='mono';
+  $('#li-fields').innerHTML=
+    fieldHTML('li-u','Tension du réseau U','V',UDEF.mono)+
+    fieldHTML('li-i','Courant dans la ligne I','A','10')+
+    fieldHTML('li-l','Longueur simple de la ligne l','m','25')+
+    selHTML('li-a','Section des conducteurs A',SECT.map(s=>`<option value="${s}" ${s===1.5?'selected':''}>${num(s)} mm²</option>`).join(''))+
+    selHTML('li-mat','Matériau',MAT.map((m,i)=>`<option value="${i}">${m[0]} · ρ = ${num(m[1])} Ω·mm²/m</option>`).join(''))+
+    fieldHTML('li-rho','Résistivité ρ','Ω·mm²/m','0,0175')+
+    fieldHTML('li-cos','Facteur de puissance cos φ','','1')+
+    fieldHTML('li-lim','Chute de tension admise','%','4');
+  function readPlain(id,max=Infinity){
+    const el=document.getElementById(id); const s=el.value.trim().replace(',','.');
+    const x=s===''?NaN:Number(s); const ok=isFinite(x)&&x>0&&x<=max;
+    el.closest('.field').classList.toggle('bad',!ok); return ok?x:NaN;
+  }
+  function svg(U,I,l,Rc,dU,Ur){
+    let s='';
+    if(type!=='tri'){
+      const xs=90,xl=540,T=60,B=180,cy=120,g=type==='dc'?6:17;
+      s+=S.wire([[xs,cy-g],[xs,T],[xl,T],[xl,B],[xs,B],[xs,cy+g]]);
+      s+=type==='dc'?S.battery(xs,cy):`<circle class="res" cx="${xs}" cy="${cy}" r="17"/><path class="w" d="M${xs-9} ${cy} q4.5 -8 9 0 t9 0"/>`;
+      s+=S.t(xs-26,cy+4,'U = '+fmt(U,'V'),'tv','end');
+      s+=S.resH(300,T)+S.t(300,T-14,'aller · '+S.lab('R','c',' = '+fu(Rc,'Ω')),'tn')+S.t(300,T+26,'ΔU/2 = '+fu(dU/2,'V'),'tv');
+      s+=S.resH(300,B)+S.t(300,B+26,'retour · '+S.lab('R','c',' = '+fu(Rc,'Ω')),'tn')+S.t(300,B-14,'ΔU/2 = '+fu(dU/2,'V'),'tv');
+      s+=`<rect class="res" x="${xl-15}" y="${cy-30}" width="30" height="60"/>`;
+      s+=S.t(xl+26,cy-4,'Récepteur','tn','start')+S.t(xl+26,cy+13,S.lab('U','R',' = '+fu(Ur,'V')),'tv','start');
+      s+=S.arrow(160,T,'r')+S.t(160,T-12,'I = '+fu(I,'A'),'ti');
+      s+=`<line class="axis" x1="150" y1="242" x2="470" y2="242"/><polygon points="150,242 158,238 158,246" fill="var(--muted)"/><polygon points="470,242 462,238 462,246" fill="var(--muted)"/>`;
+      s+=S.t(310,236,'l = '+num(l)+' m','tm');
+      return S.wrap(660,256,s,'Ligne à deux conducteurs entre la source et le récepteur');
+    }
+    const x0=110,xl=530,ys=[50,100,150];
+    ys.forEach((y,i)=>{
+      s+=S.wire([[x0+4,y],[xl,y]])+`<circle cx="${x0}" cy="${y}" r="4" fill="var(--surface)" stroke="var(--wire)" stroke-width="2"/>`+S.t(x0-12,y+4,'L'+(i+1),'tn','end');
+      s+=S.resH(300,y)+S.t(300,y-14,S.lab('R','c',' = '+fu(Rc,'Ω')),'tm')+S.arrow(170,y,'r');
+    });
+    s+=S.t(170,36,'I = '+fu(I,'A'),'ti');
+    s+=`<rect class="res" x="${xl}" y="30" width="56" height="140"/>`+S.t(xl+28,104,'M','tn')+S.t(xl+28,120,'3~','tm');
+    s+=S.t(xl+66,92,'Récepteur','tn','start')+S.t(xl+66,108,'triphasé','tm','start')+S.t(xl+66,126,S.lab('U','R',' = '+fu(Ur,'V')),'tv','start');
+    s+=S.t(x0-30,186,'U = '+fmt(U,'V')+' entre phases','tv','start');
+    s+=`<line class="axis" x1="150" y1="210" x2="470" y2="210"/><polygon points="150,210 158,206 158,214" fill="var(--muted)"/><polygon points="470,210 462,206 462,214" fill="var(--muted)"/>`;
+    s+=S.t(310,204,'l = '+num(l)+' m','tm');
+    return S.wrap(700,225,s,'Ligne triphasée à trois conducteurs alimentant un récepteur');
+  }
+  function render(){
+    $$('#li-type .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.type===type?'true':'false'));
+    $('#li-cos').closest('.field').hidden=type==='dc';
+    $('#li-u').closest('.field').querySelector('.flabel').textContent=type==='tri'?'Tension composée U (entre phases)':'Tension du réseau U';
+    const U=readField('li-u'), I=readField('li-i'), l=readPlain('li-l'), A=parseFloat($('#li-a').value), rho=readPlain('li-rho'), lim=readPlain('li-lim',100);
+    const cos=type==='dc'?1:readPlain('li-cos',1);
+    if(![U,I,l,rho,lim,cos].every(x=>x>0)){ $('#li-steps').innerHTML='<li><span class="note">Une valeur est vide ou illisible (cos φ est compris entre 0 et 1).</span></li>'; return; }
+    const Rc=rho*l/A, tri=type==='tri', k=tri?Math.sqrt(3):2, kTxt=tri?'√3':'2';
+    const dU=k*Rc*I*cos, pct=dU/U*100, Ur=U-dU, Pv=(tri?3:2)*Rc*I*I;
+    const dUadm=U*lim/100, Amin=k*rho*l*I*cos/dUadm, An=SECT.find(x=>x>=Amin*0.9999);
+    const okDrop=pct<=lim+1e-9;
+    $('#li-svg').innerHTML=svg(U,I,l,Rc,dU,Ur);
+    const pill=$('#li-state'); pill.className='pill '+(okDrop?'sat':'bad'); pill.textContent=(okDrop?'Acceptable : ':'Trop élevée : ')+num(pct.toFixed(2))+' %';
+    const m=$('#li-meter'); m.classList.toggle('over',!okDrop); m.querySelector('i').style.width=Math.min(100,pct/(2*lim)*100)+'%';
+    $('#li-scale').innerHTML=`<span>0 %</span><span>limite ${num(lim)} %</span><span>${num(2*lim)} %</span>`;
+    $('#li-txt').innerHTML=okDrop
+      ?`Le récepteur reçoit ${fu(Ur,'V')} au lieu de ${fmt(U,'V')}. La chute reste sous la limite de ${num(lim)} %.`
+      :`Le récepteur ne reçoit que ${fu(Ur,'V')}. Pour rester sous ${num(lim)} %, il faut une section d’au moins ${num(Amin.toFixed(2))} mm², soit ${An?num(An)+' mm² en section normalisée':'plus que 240 mm²'}, ou une ligne plus courte.`;
+    const ccos=type==='dc'?'':' · cos φ';
+    const vcos=type==='dc'?'':' · '+num(cos);
+    $('#li-sum').innerHTML=
+      `<div class="stat"><div class="k">R d’un conducteur</div><div class="v">${fu(Rc,'Ω')}</div></div>`+
+      (tri?'':`<div class="stat"><div class="k">R de la ligne (aller + retour)</div><div class="v">${fu(2*Rc,'Ω')}</div></div>`)+
+      `<div class="stat u"><div class="k">Chute ΔU</div><div class="v">${fu(dU,'V')}</div></div>`+
+      `<div class="stat u"><div class="k">Tension au récepteur</div><div class="v">${fu(Ur,'V')}</div></div>`+
+      `<div class="stat"><div class="k">Pertes dans la ligne</div><div class="v">${fu(Pv,'W')}</div></div>`+
+      `<div class="stat"><div class="k">Section min. (ΔU ≤ ${num(lim)} %)</div><div class="v">${An?num(An)+' mm²':'> 240 mm²'}</div></div>`;
+    const s=[];
+    s.push(`${sub('R','c')} = ρ · l / A = ${num(rho)} Ω·mm²/m · ${num(l)} m / ${num(A)} mm² = <b>${fu(Rc,'Ω')}</b><span class="note">Résistance d’un seul conducteur.</span>`);
+    if(!tri){
+      s.push(`${sub('R','L')} = 2 · ${sub('R','c')} = 2 · ${fu(Rc,'Ω')} = <b>${fu(2*Rc,'Ω')}</b><span class="note">Le courant fait l’aller et le retour : deux conducteurs en série.</span>`);
+      s.push(`ΔU = ${sub('R','L')} · I${ccos} = ${fu(2*Rc,'Ω')} · ${fu(I,'A')}${vcos} = <b>${fu(dU,'V')}</b>${type==='mono'?'<span class="note">Formule simplifiée : on néglige l’inductance de la ligne.</span>':''}`);
+    } else {
+      s.push(`ΔU = √3 · ${sub('R','c')} · I · cos φ = 1,732 · ${fu(Rc,'Ω')} · ${fu(I,'A')} · ${num(cos)} = <b>${fu(dU,'V')}</b><span class="note">En triphasé équilibré, la chute de la tension composée vaut √3 fois la chute sur un conducteur. On néglige l’inductance de la ligne.</span>`);
+    }
+    s.push(`ΔU % = ΔU / U · 100 = ${fu(dU,'V')} / ${fmt(U,'V')} · 100 = <b>${num(pct.toFixed(2))} %</b> ${okDrop?'<span class="ok">✓ ≤ '+num(lim)+' %</span>':'<span style="color:var(--bad);font-weight:600">✗ > '+num(lim)+' %</span>'}`);
+    s.push(`${sub('U','R')} = U − ΔU = ${fmt(U,'V')} − ${fu(dU,'V')} = <b>${fu(Ur,'V')}</b>`);
+    s.push(`${sub('P','V')} = ${tri?'3':'2'} · ${sub('R','c')} · I² = ${tri?'3':'2'} · ${fu(Rc,'Ω')} · (${fu(I,'A')})² = <b>${fu(Pv,'W')}</b><span class="note">Puissance perdue en chaleur dans les conducteurs.</span>`);
+    s.push(`${sub('A','min')} = ${kTxt} · ρ · l · I${ccos} / ${sub('ΔU','adm')} = ${kTxt} · ${num(rho)} · ${num(l)} · ${fu(I,'A')}${vcos} / ${fu(dUadm,'V')} = <b>${num(Amin.toFixed(2))} mm²</b> → section normalisée : <b>${An?num(An)+' mm²':'> 240 mm²'}</b><span class="note">${sub('ΔU','adm')} = ${num(lim)} % de ${fmt(U,'V')} = ${fu(dUadm,'V')}. Ce calcul ne vérifie que la chute de tension : la section doit aussi respecter le courant admissible du câble et la protection (tableaux de la NIBT).</span>`);
+    $('#li-steps').innerHTML=s.map(x=>`<li>${x}</li>`).join('');
+  }
+  $('#li-type').addEventListener('click',e=>{const b=e.target.closest('[data-type]'); if(!b||b.dataset.type===type) return; type=b.dataset.type; $('#li-u').value=UDEF[type]; render();});
+  $('#li-mat').addEventListener('change',()=>{$('#li-rho').value=num(MAT[+$('#li-mat').value][1]); render();});
+  $('#li-fields').addEventListener('input',e=>{if(e.target.tagName!=='SELECT') render();});
+  $('#li-a').addEventListener('change',render);
+  render();
 })();
 
 /* =====================================================================

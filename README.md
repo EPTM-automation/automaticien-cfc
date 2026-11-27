@@ -2,7 +2,7 @@
 
 Outils interactifs pour apprentis automaticiens CFC.
 
-- **Électrotechnique** : loi d'Ohm, circuits série, parallèle et mixtes, transistor NPN en commutation, résistance série d'une LED, code couleurs des résistances.
+- **Électrotechnique** : loi d'Ohm, circuits série, parallèle et mixtes, résistance de ligne et chute de tension, transistor NPN en commutation, résistance série d'une LED, code couleurs des résistances.
 - **Commande électrique** : en préparation.
 - **NIBT** : en préparation.
 
